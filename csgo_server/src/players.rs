@@ -5,10 +5,10 @@ use crate::{parse_to_string, request::{send_request, Query}};
 
 #[derive(Debug)]
 pub struct Player {
-    index: u8,
-    name: String,
-    score: i32,
-    duration: f32,
+    pub index: u8,
+    pub name: String,
+    pub score: i32,
+    pub duration: f32,
 }
 
 impl Player {

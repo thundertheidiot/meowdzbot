@@ -2,4 +2,5 @@ target
 csgo_server/target
 run
 meow.db
-
+.direnv
+.sqlx
