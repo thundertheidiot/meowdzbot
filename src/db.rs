@@ -47,25 +47,9 @@ pub async fn read_server_address(
         .collect())
 }
 
-// pub async fn read_address(conn: &mut SqliteConnection) -> Option<String>{
-//     let address = sqlx::query!(
-// 	    "SELECT server_address FROM settings WHERE id = 1"
-//     )
-//         .fetch_one(conn)
-//         .await
-// 	.ok()?;
-
-//     address.server_address
-// }
-
-// pub async fn write_address(conn: &mut SqliteConnection, address: String) -> Result<(), Error> {
-//     sqlx::query!(
-// 	"INSERT INTO settings (id, server_address) VALUES (1, ?)
-// ON CONFLICT(id) DO UPDATE SET server_address = excluded.server_address",
-// 	address
-//     )
-// 	.execute(conn)
-// 	.await?;
-
-//     Ok(())
-// }
+pub struct Settings {
+    external_redirector_address: String,
+}
+impl TypeMapKey for Settings {
+    type Value = Settings;
+}

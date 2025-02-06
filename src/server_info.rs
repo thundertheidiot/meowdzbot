@@ -1,4 +1,4 @@
-use crate::db::{DbConnection};
+use crate::db::{DbConnection, ServerAddress};
 use crate::ServerSocket;
 use ::serenity::all::{CreateActionRow, CreateButton};
 use csgo_server::players::Player;
@@ -56,6 +56,15 @@ pub async fn status(
             let info = get_server_info(sock).await?;
             let mut players = get_players(sock).await?.real().0;
 
+	    let button = match data.get::<ServerAddress>().and_then(|v| v.get(&name)) {
+		Some(v) => vec![
+		    CreateButton::new_link(
+			format!("http://localhost:8080/{}", v.replace(":", "%3A"))
+		    ).label("Connect").emoji('🐈')
+		],
+		None => vec![],
+	    };
+
             let content = format!(
                 r#"
 {}
@@ -72,58 +81,14 @@ Player list:
                 format_players(players),
             );
 
-	    ctx.say(content).await?
+	    // ctx.say(content).await?
+	    ctx.send(
+		CreateReply::default().content(content)
+		    .components(vec![CreateActionRow::Buttons(button)])
+	    ).await?
 	},
 	None => ctx.say("ligma").await?,
     };
 
     Ok(())
-
-//     let _ = match data.get::<ServerSocket>() {
-//         Some(v) => {
-//             match v.get(&name) {
-//                 Some(sock) => {
-
-//                     dbg!(&players);
-
-//                     // TODO fix
-//                     // let mut data = ctx.serenity_context().data.write().await;
-//                     // let mut conn = data.get_mut::<DbConnection>().unwrap();
-//                     // let button = match read_address(&mut conn).await {
-//                     // 	Some(v) => vec![
-//                     // 	    CreateButton::new_link(
-//                     // 		"http://localhost:8080"
-//                     // 	    ).label("meow").emoji('🍎')
-//                     // 	],
-//                     // 	None => vec![]
-//                     // };
-
-//                     let content = format!(
-//                         r#"
-// {}
-// `{} - {} players online`
-
-// Player list:
-// ```
-// {}
-// ```
-// "#,
-//                         info.name,
-//                         info.map,
-//                         players.len(),
-//                         format_players(players),
-//                     );
-
-//                     ctx.send(
-//                         CreateReply::default().content(content), // .components(vec![CreateActionRow::Buttons(
-//                                                                  // 	button
-//                                                                  // )])
-//                     )
-//                     .await?
-//                 }
-//                 _ => ctx.say("Error: invalid server identifier").await?,
-//             }
-//         }
-//         _ => ctx.say("Error: no server address set").await?,
-//     };
 }
