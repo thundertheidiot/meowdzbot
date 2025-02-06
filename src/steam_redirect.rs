@@ -2,6 +2,7 @@ use crate::Error;
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
+use urlencoding::decode;
 
 pub async fn steam_redirector_server() -> Result<(), Error> {
     let listener = TcpListener::bind("0.0.0.0:8080").await?;
@@ -24,11 +25,13 @@ pub async fn steam_redirector_server() -> Result<(), Error> {
                         }
                     };
 
-                    let path = first_line.split_whitespace().nth(1).unwrap_or("/");
+                    let path = first_line.split_whitespace()
+			.nth(1).unwrap_or("/");
+		    let path = decode(path).unwrap_or("invalid path".into());
 
                     let response_body = format!(
                         r#"<html><head><script>window.open("steam://connect/{}", "_self");</script></head></html>"#,
-                        path
+			path
                     );
 
                     let response = format!(

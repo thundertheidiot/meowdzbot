@@ -1,3 +1,4 @@
+use crate::webserver::server;
 use crate::server_info::status;
 use crate::socket::ServerSocket;
 use ::serenity::all::ActivityType;
@@ -28,6 +29,8 @@ mod db;
 mod server_info;
 mod socket;
 mod steam_redirect;
+mod gamestate_integration;
+mod webserver;
 
 struct UserData {}
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -79,6 +82,7 @@ async fn event_handler(
             println!("Logged in as {}", data_about_bot.user.name);
 
             tokio::spawn(loop_timer(Arc::new(ctx.clone())));
+	    tokio::spawn(server(Arc::new(ctx.clone())));
         }
         _ => {}
     }
@@ -125,7 +129,10 @@ async fn main() -> Result<(), Error> {
 
 	let mut sockets = HashMap::new();
 	for (n, a) in addresses.clone() {
-	    update_socket(&mut sockets, n, a).await?;
+	    match update_socket(&mut sockets, n, a).await {
+		Ok(_) => (),
+		Err(e) => eprintln!("Unable to create socket: {e:#?}."),
+	    };
 	}
 
 	data.insert::<ServerSocket>(sockets);
@@ -133,7 +140,6 @@ async fn main() -> Result<(), Error> {
         data.insert::<DbConnection>(conn);
     }
 
-    tokio::spawn(steam_redirector_server());
 
     client.start().await?;
 

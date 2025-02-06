@@ -1,6 +1,11 @@
 use poise::serenity_prelude::prelude::TypeMapKey;
+use serenity::prelude::TypeMap;
 use sqlx::AnyConnection;
+use sqlx::Connection;
+use sqlx::Database;
+use sqlx::Executor;
 use sqlx::SqliteConnection;
+use tokio::sync::RwLockReadGuard;
 use std::collections::HashMap;
 
 type Error = crate::Error;
@@ -53,3 +58,27 @@ pub struct Settings {
 impl TypeMapKey for Settings {
     type Value = Settings;
 }
+
+impl Default for Settings {
+    fn default() -> Self {
+	Settings {
+	    external_redirector_address: "http://localhost:8080".to_string(),
+	}
+    }
+}
+
+// pub async fn read_settings<'a, DB, C>(
+//     mut data: RwLockReadGuard<'_, TypeMap>,
+//     conn: &mut SqliteConnection,
+// ) -> Result<(), Error>
+// {
+//     let rows = sqlx::query!("SELECT external_redirector_address FROM settings WHERE id = 1").fetch_one(conn).await?;
+
+//     let settings = Settings {
+// 	external_redirector_address: rows.external_redirector_address.ok_or("DBError: Unable to get external redirector address")?,
+//     };
+
+//     data.insert::<Settings>(settings);
+    
+//     Ok(())
+// }

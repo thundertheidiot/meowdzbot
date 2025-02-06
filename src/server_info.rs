@@ -4,6 +4,7 @@ use ::serenity::all::{CreateActionRow, CreateButton};
 use csgo_server::players::Player;
 use csgo_server::{info::get_server_info, players::get_players};
 use tokio::net::UdpSocket;
+use urlencoding::encode;
 
 use crate::Context;
 use crate::Error;
@@ -59,7 +60,8 @@ pub async fn status(
 	    let button = match data.get::<ServerAddress>().and_then(|v| v.get(&name)) {
 		Some(v) => vec![
 		    CreateButton::new_link(
-			format!("http://localhost:8080/{}", v.replace(":", "%3A"))
+			format!("http://localhost:8080/{}",
+				encode(v))
 		    ).label("Connect").emoji('🐈')
 		],
 		None => vec![],
@@ -69,11 +71,11 @@ pub async fn status(
                 r#"
 {}
 `{} - {} players online`
-
 Player list:
 ```
 {}
 ```
+Open CS:GO before pressing connect
 "#,
                 info.name,
                 info.map,
