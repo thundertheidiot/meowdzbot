@@ -2,7 +2,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
     rust-overlay.url = "github:oxalica/rust-overlay";
-    crane = "github:ipetkov/crane";
+    crane.url = "github:ipetkov/crane";
   };
 
   outputs = {
@@ -29,7 +29,7 @@
       craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;
 
       cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
-    in {
+    in rec {
       default = craneLib.buildPackage rec {
         inherit (cargoToml.package) version;
         pname = cargoToml.package.name;
@@ -37,6 +37,30 @@
 
         cargoArtifacts = craneLib.buildDepsOnly {
           inherit src pname version;
+        };
+
+        nativeBuildInputs = with pkgs; [
+          sqlx-cli
+        ];
+
+        preBuild = ''
+          export DATABASE_URL=sqlite:./db.sqlite3
+           sqlx database create
+           sqlx migrate run
+        '';
+      };
+
+      docker = pkgs.dockerTools.buildLayeredImage {
+        name = "registry.gitlab.com/thundertheidiot/meowdzbot";
+        tag = "latest";
+        config = {
+          Env = [
+            "DATABASE_URL=sqlite:/meow.db"
+          ];
+          ExposedPorts = {
+            "8080" = {};
+          };
+          Cmd = "${default}/bin/meowdz-bot";
         };
       };
     });
