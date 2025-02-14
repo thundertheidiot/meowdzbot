@@ -18,23 +18,6 @@ pub struct Info {
     timestamp: SystemTime,
 }
 
-struct StringError(String);
-
-use std::fmt;
-impl fmt::Display for StringError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Error: {}", self.0)
-    }
-}
-
-impl fmt::Debug for StringError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Error: {}", self.0)
-    }
-}
-
-impl std::error::Error for StringError {}
-
 static INFO: Lazy<Arc<RwLock<HashMap<String, Info>>>> =
     Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 

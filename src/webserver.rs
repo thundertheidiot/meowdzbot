@@ -2,14 +2,14 @@ use crate::server_info::Info;
 use axum::extract::State;
 use axum::Json;
 use axum::{
-    body::{to_bytes, HttpBody},
+    body::to_bytes,
     extract::{Path, Request},
     http::StatusCode,
     response::{Html, IntoResponse},
     routing::{get, post},
     Router,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::from_slice;
 use std::collections::HashMap;
 use std::net::SocketAddr;

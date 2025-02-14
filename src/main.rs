@@ -3,16 +3,11 @@ use crate::socket::ServerSocket;
 use crate::status::activity::bot_status_loop;
 use crate::status::status;
 use crate::webserver::server;
-use ::serenity::all::ActivityType;
-use ::serenity::all::OnlineStatus;
-use csgo_server::info::get_server_info;
-use csgo_server::players::get_players;
-use csgo_server::request::create_socket;
 use db::read_server_address;
-use db::read_settings;
 use db::DbConnection;
 use db::ServerAddress;
 use poise::serenity_prelude as serenity;
+use settings::db::read_settings;
 use settings::set_external_redirector;
 use socket::create_server;
 use socket::list_servers;
@@ -26,14 +21,10 @@ use status::updating::status_message_update_loop;
 use status::updating::UpdatingStatusMessages;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::net::UdpSocket;
-use tokio::time;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
 use std::env;
-use std::io;
-use std::time::Duration;
 
 mod db;
 mod gamestate_integration;
@@ -47,10 +38,7 @@ struct UserData {}
 type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, UserData, Error>;
 
-#[poise::command(
-    prefix_command,
-    hide_in_help = true
-)]
+#[poise::command(prefix_command, hide_in_help = true)]
 pub async fn register(ctx: Context<'_>) -> Result<(), Error> {
     poise::builtins::register_application_commands_buttons(ctx).await?;
     Ok(())
@@ -95,8 +83,7 @@ async fn privilege_check(ctx: Context<'_>) -> Result<bool, Error> {
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let token = env::var("DISCORD_TOKEN").expect("Set $DISCORD_TOKEN to your discord token.");
-    let db_address =
-        env::var("DATABASE_URL").expect("Set $DATABASE_URL to your sqlite database.");
+    let db_address = env::var("DATABASE_URL").expect("Set $DATABASE_URL to your sqlite database.");
 
     let subscriber = FmtSubscriber::builder()
         .with_max_level(Level::INFO)
@@ -117,7 +104,7 @@ async fn main() -> Result<(), Error> {
                 help(),
                 status(),
                 create_server(),
-		delete_server(),
+                delete_server(),
                 list_servers(),
                 set_external_redirector(),
                 create_updating_status(),

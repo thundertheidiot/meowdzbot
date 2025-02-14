@@ -1,18 +1,13 @@
 use db::remove_updating_status_message;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time;
 
 use poise::{serenity_prelude as serenity, CreateReply};
 
-use ::serenity::{
-    all::{standard::CommandResult, CacheHttp, ChannelId, EditMessage, MessageId},
-    prelude::TypeMap,
-};
+use ::serenity::all::{CacheHttp, ChannelId, EditMessage, MessageId};
 use serenity::prelude::TypeMapKey;
 use sqlx::SqliteConnection;
-use tokio::sync::RwLockWriteGuard;
 
 use crate::settings::Settings;
 use crate::{db::DbConnection, Context};
@@ -99,7 +94,8 @@ pub async fn status_message_update_loop(ctx: Arc<serenity::Context>) {
 
 fn create_usm_help() -> String {
     "Create a status message that will get continuously updated.
-This requires admin privileges.".into()
+This requires admin privileges."
+        .into()
 }
 
 #[poise::command(
@@ -107,16 +103,18 @@ This requires admin privileges.".into()
     required_permissions = "MANAGE_MESSAGES",
     required_bot_permissions = "MANAGE_MESSAGES",
     category = "Updating status message",
-    help_text_fn = "create_usm_help",
+    help_text_fn = "create_usm_help"
 )]
 pub async fn create_updating_status(
     ctx: Context<'_>,
     #[description = "Server identifier"] name: String,
 ) -> Result<(), Error> {
-    ctx.send(CreateReply::default()
-             .content("Message will be sent soon, feel free to dismiss this")
-	     .ephemeral(true)
-    ).await?;
+    ctx.send(
+        CreateReply::default()
+            .content("Message will be sent soon, feel free to dismiss this")
+            .ephemeral(true),
+    )
+    .await?;
 
     let mut data = ctx.serenity_context().data.write().await;
     let usm = data
@@ -124,7 +122,9 @@ pub async fn create_updating_status(
         .ok_or("DataError: Unable to get updating status messages")?;
 
     let channel = ctx.channel_id();
-    let msg = channel.say(ctx, "Updating status message, please wait...").await?;
+    let msg = channel
+        .say(ctx, "Updating status message, please wait...")
+        .await?;
 
     let entry: (u64, u64, String) = (msg.channel_id.into(), msg.id.into(), name);
     usm.push(entry.clone());
@@ -140,7 +140,8 @@ pub async fn create_updating_status(
 
 fn delete_usm_help() -> String {
     "Delete an updating status message, and remove it from the database.
-This requires admin privileges.".into()
+This requires admin privileges."
+        .into()
 }
 
 #[poise::command(
@@ -162,11 +163,15 @@ pub async fn delete_updating_status(
 
     {
         // Maybe weird, but sqlx doesn't throw an error if nothing is deleted, and this way i don't have to grab usms twice
-        let conn = data.get_mut::<DbConnection>().ok_or("DataError: Unable to get database connection")?;
+        let conn = data
+            .get_mut::<DbConnection>()
+            .ok_or("DataError: Unable to get database connection")?;
         remove_updating_status_message(conn, c, m).await?;
     }
 
-    let usms = data.get_mut::<UpdatingStatusMessages>().ok_or("DataError: Unable to get updating status messages")?;
+    let usms = data
+        .get_mut::<UpdatingStatusMessages>()
+        .ok_or("DataError: Unable to get updating status messages")?;
     if !usms
         .iter()
         .any(|(ci, mi, _name)| *ci == c.get() && *mi == m.get())

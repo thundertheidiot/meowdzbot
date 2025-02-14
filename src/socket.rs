@@ -3,7 +3,6 @@ use std::collections::HashMap;
 
 use crate::db::remove_server_address;
 use crate::db::{store_server_address, DbConnection, ServerAddress};
-use crate::serenity::standard::CommandResult;
 use poise::serenity_prelude::prelude::TypeMapKey;
 use tokio::net::{ToSocketAddrs, UdpSocket};
 
@@ -40,7 +39,7 @@ use crate::privilege_check;
     slash_command,
     check = "privilege_check",
     category = "Server",
-    help_text_fn = "create_server_help",
+    help_text_fn = "create_server_help"
 )]
 pub async fn create_server(
     ctx: Context<'_>,
@@ -79,21 +78,27 @@ pub async fn delete_server(
 ) -> Result<(), Error> {
     let mut data = ctx.serenity_context().data.write().await;
 
-    let addresses = data.get_mut::<ServerAddress>().ok_or("DataError: Unable to get server addresses")?;
+    let addresses = data
+        .get_mut::<ServerAddress>()
+        .ok_or("DataError: Unable to get server addresses")?;
     addresses.retain(|s_name, _addr| *s_name != name);
 
-    let sockets = data.get_mut::<ServerSocket>().ok_or("DataError: Unable to get server sockets")?;
+    let sockets = data
+        .get_mut::<ServerSocket>()
+        .ok_or("DataError: Unable to get server sockets")?;
     sockets.remove(&name);
 
-
-    let conn = data.get_mut::<DbConnection>().ok_or("DataError: Unable to get database connection")?;
+    let conn = data
+        .get_mut::<DbConnection>()
+        .ok_or("DataError: Unable to get database connection")?;
     remove_server_address(conn, &name).await?;
 
     ctx.send(
-	CreateReply::default()
-	    .content(format!("Successfully deleted {}", name))
-	    .ephemeral(true)
-    ).await?;
+        CreateReply::default()
+            .content(format!("Successfully deleted {}", name))
+            .ephemeral(true),
+    )
+    .await?;
 
     Ok(())
 }

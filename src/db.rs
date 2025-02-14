@@ -1,17 +1,8 @@
 use crate::settings::Settings;
+use crate::Error;
 use poise::serenity_prelude::prelude::TypeMapKey;
-use serenity::prelude::TypeMap;
-use sqlx::AnyConnection;
-use sqlx::Connection;
-use sqlx::Database;
-use sqlx::Executor;
 use sqlx::SqliteConnection;
 use std::collections::HashMap;
-use tokio::sync::RwLockReadGuard;
-use tokio::sync::RwLockWriteGuard;
-
-type Error = crate::Error;
-type Context<'a> = crate::Context<'a>;
 
 pub struct DbConnection;
 impl TypeMapKey for DbConnection {
@@ -45,11 +36,9 @@ pub async fn remove_server_address(
     conn: &mut SqliteConnection,
     name: &String,
 ) -> Result<(), Error> {
-    sqlx::query!(
-	"DELETE FROM server_address WHERE key = ?",
-	name
-    ).execute(conn)
-	.await?;
+    sqlx::query!("DELETE FROM server_address WHERE key = ?", name)
+        .execute(conn)
+        .await?;
 
     Ok(())
 }
@@ -75,20 +64,6 @@ ON CONFLICT(id) DO UPDATE SET external_redirector_address = excluded.external_re
     )
     .execute(conn)
     .await?;
-
-    Ok(())
-}
-
-pub async fn read_settings(
-    data: &mut RwLockWriteGuard<'_, TypeMap>,
-    conn: &mut SqliteConnection,
-) -> Result<(), Error> {
-    let settings = sqlx::query_as!(Settings, "SELECT * FROM settings WHERE id = 1")
-        .fetch_one(conn)
-        .await
-        .unwrap_or_default();
-
-    data.insert::<Settings>(settings);
 
     Ok(())
 }

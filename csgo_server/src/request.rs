@@ -1,7 +1,6 @@
 use tokio::net::ToSocketAddrs;
 use tokio::net::UdpSocket;
 use std::io;
-use std::net::SocketAddr;
 
 pub async fn create_socket<A: ToSocketAddrs>(address: A) -> io::Result<UdpSocket> {
     let sock = UdpSocket::bind("0.0.0.0:0").await?;

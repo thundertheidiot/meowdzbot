@@ -16,7 +16,6 @@ use tokio::net::UdpSocket;
 use urlencoding::encode;
 
 use serenity::all::CreateButton;
-use serenity::standard::CommandResult;
 
 pub async fn make_status_message(
     external_redirector: Option<String>,
@@ -87,8 +86,13 @@ pub async fn status(
     )
     .await?;
 
-    ctx.send(CreateReply::default().embed(embed).components(action).ephemeral(true))
-        .await?;
+    ctx.send(
+        CreateReply::default()
+            .embed(embed)
+            .components(action)
+            .ephemeral(true),
+    )
+    .await?;
 
     Ok(())
 }
