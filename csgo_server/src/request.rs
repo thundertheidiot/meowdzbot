@@ -49,7 +49,6 @@ pub async fn send_request(sock: &UdpSocket, query: Query) -> io::Result<Vec<u8>>
 	}
 	
 	request.extend_from_slice(&buf[5..len]);
-	// TODO remove 4 if player query
 	sock.send(&request).await?;
 	let _ = sock.recv(&mut buf).await?;
     }

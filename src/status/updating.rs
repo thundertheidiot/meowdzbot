@@ -166,7 +166,7 @@ pub async fn delete_updating_status(
         remove_updating_status_message(conn, c, m).await?;
     }
 
-    let usms = data.get_mut::<UpdatingStatusMessages>().ok_or("DataError: Unable to get updating status messages")?; // TODO unwrap
+    let usms = data.get_mut::<UpdatingStatusMessages>().ok_or("DataError: Unable to get updating status messages")?;
     if !usms
         .iter()
         .any(|(ci, mi, _name)| *ci == c.get() && *mi == m.get())
