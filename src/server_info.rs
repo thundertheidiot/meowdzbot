@@ -35,8 +35,6 @@ pub async fn get_server_info(
         Some(v) => {
             if let Ok(duration) = SystemTime::now().duration_since(v.timestamp) {
                 if duration.as_secs() >= 5 {
-                    println!("Fetching new data for {}", name);
-
                     let server_info = info::get_server_info(sock).await?;
                     let players = csgo_server::players::get_players(sock).await?;
 

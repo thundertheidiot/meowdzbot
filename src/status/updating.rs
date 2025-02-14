@@ -67,11 +67,6 @@ pub async fn status_message_update_loop(ctx: Arc<serenity::Context>) {
                                                     .await
                                                 {
                                                     eprintln!("Error editing message: {e}");
-                                                } else {
-                                                    println!(
-                                                        "updated usm {} {}",
-                                                        msg.channel_id, msg.id
-                                                    );
                                                 }
                                             }
                                             Err(e) => eprintln!("Error making status: {e}"),
@@ -186,8 +181,6 @@ pub async fn delete_updating_status(
     }
 
     usms.retain(|(ci, mi, _name)| !(*ci == c.get() && *mi == m.get()));
-
-    dbg!(usms);
 
     message.delete(ctx).await?;
     ctx.send(
