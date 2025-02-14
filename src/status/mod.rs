@@ -64,12 +64,12 @@ pub async fn make_status_message(
 pub async fn status(
     ctx: Context<'_>,
     #[description = "Server identifier"] name: String,
-) -> CommandResult {
+) -> Result<(), Error> {
     let data = ctx.serenity_context().data.read().await;
 
     let settings = data
         .get::<Settings>()
-        .ok_or("DataError: Unable to fetch settings")?;
+        .ok_or("DataError: Unable to get settings")?;
     let redirect = settings
         .external_redirector_address
         .clone()

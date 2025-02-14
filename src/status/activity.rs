@@ -32,7 +32,7 @@ pub async fn bot_status_loop(ctx: Arc<serenity::Context>) {
                 }
                 Err(e) => eprintln!("Error getting server information: {e}"),
             },
-            None => eprintln!("DataError: Unable to fetch sockets"),
+            None => eprintln!("DataError: Unable to get sockets"),
         }
     }
 }

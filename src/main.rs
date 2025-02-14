@@ -89,8 +89,7 @@ async fn event_handler(
 async fn privilege_check(ctx: Context<'_>) -> Result<bool, Error> {
     let thunder = ctx.author().id.get() == 349607458324348930;
 
-    // Ok(thunder)
-    Ok(false)
+    Ok(thunder)
 }
 
 #[tokio::main]

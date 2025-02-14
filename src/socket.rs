@@ -1,16 +1,11 @@
-use once_cell::sync::Lazy;
 use poise::CreateReply;
 use std::collections::HashMap;
-use tokio::sync::RwLock;
-use tokio::sync::RwLockWriteGuard;
 
+use crate::db::remove_server_address;
 use crate::db::{store_server_address, DbConnection, ServerAddress};
 use crate::serenity::standard::CommandResult;
-use csgo_server::info::get_server_info;
-use poise::serenity_prelude::prelude::{TypeMap, TypeMapKey};
+use poise::serenity_prelude::prelude::TypeMapKey;
 use tokio::net::{ToSocketAddrs, UdpSocket};
-
-use poise::serenity_prelude as serenity;
 
 type Error = crate::Error;
 type Context<'a> = crate::Context<'a>;
@@ -21,8 +16,6 @@ pub struct ServerSocket;
 impl TypeMapKey for ServerSocket {
     type Value = HashMap<String, UdpSocket>;
 }
-
-use std::sync::Arc;
 
 pub async fn update_socket<T: ToSocketAddrs>(
     sockets: &mut HashMap<String, UdpSocket>,
@@ -36,13 +29,24 @@ pub async fn update_socket<T: ToSocketAddrs>(
     Ok(())
 }
 
+fn create_server_help() -> String {
+    "Adds a new server to the list, counterintuitively this also works for updating the address of an existing server.
+Requires admin privileges."
+        .into()
+}
+
 use crate::privilege_check;
-#[poise::command(slash_command, check = "privilege_check")]
+#[poise::command(
+    slash_command,
+    check = "privilege_check",
+    category = "Server",
+    help_text_fn = "create_server_help",
+)]
 pub async fn create_server(
     ctx: Context<'_>,
     #[description = "Server identifier"] name: String,
     #[description = "Server address"] addr: String,
-) -> CommandResult {
+) -> Result<(), Error> {
     let mut data = ctx.serenity_context().data.write().await;
 
     let addrs = data
@@ -72,7 +76,7 @@ pub async fn create_server(
 pub async fn delete_server(
     ctx: Context<'_>,
     #[description = "Server identifier"] name: String,
-) -> CommandResult {
+) -> Result<(), Error> {
     let mut data = ctx.serenity_context().data.write().await;
 
     let addresses = data.get_mut::<ServerAddress>().ok_or("DataError: Unable to get server addresses")?;
@@ -95,12 +99,12 @@ pub async fn delete_server(
 }
 
 #[poise::command(slash_command)]
-pub async fn list_servers(ctx: Context<'_>) -> CommandResult {
+pub async fn list_servers(ctx: Context<'_>) -> Result<(), Error> {
     let data = ctx.serenity_context().data.read().await;
 
     let addrs = data
         .get::<ServerAddress>()
-        .ok_or("DataError: Unable to fetch addresses")?;
+        .ok_or("DataError: Unable to get addresses")?;
 
     let list = addrs
         .iter()

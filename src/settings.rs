@@ -1,6 +1,6 @@
 use crate::db::store_settings;
+use crate::Error;
 use poise::{serenity_prelude::prelude::TypeMapKey, CreateReply};
-use serenity::all::standard::CommandResult;
 
 use crate::{db::DbConnection, Context};
 
@@ -27,7 +27,7 @@ use crate::privilege_check;
 pub async fn set_external_redirector(
     ctx: Context<'_>,
     #[description = "External address"] addr: String,
-) -> CommandResult {
+) -> Result<(), Error> {
     let mut data = ctx.serenity_context().data.write().await;
 
     let msg = ctx

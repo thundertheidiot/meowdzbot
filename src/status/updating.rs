@@ -82,10 +82,10 @@ pub async fn status_message_update_loop(ctx: Arc<serenity::Context>) {
                                             Err(e) => eprintln!("Error making status: {e}"),
                                         }
                                     }
-                                    None => eprintln!("DataError: Unable to fetch sockets"),
+                                    None => eprintln!("DataError: Unable to get sockets"),
                                 }
                             }
-                            Err(e) => eprintln!("Unable to fetch message: {e}"),
+                            Err(e) => eprintln!("Unable to get message: {e}"),
                         }
                     });
                 }
@@ -112,7 +112,7 @@ This requires admin privileges.".into()
 pub async fn create_updating_status(
     ctx: Context<'_>,
     #[description = "Server identifier"] name: String,
-) -> CommandResult {
+) -> Result<(), Error> {
     ctx.send(CreateReply::default()
              .content("Message will be sent soon, feel free to dismiss this")
 	     .ephemeral(true)
@@ -121,20 +121,17 @@ pub async fn create_updating_status(
     let mut data = ctx.serenity_context().data.write().await;
     let usm = data
         .get_mut::<UpdatingStatusMessages>()
-        .ok_or("DataError: Unable to fetch updating status messages")?;
+        .ok_or("DataError: Unable to get updating status messages")?;
 
     let channel = ctx.channel_id();
     let msg = channel.say(ctx, "Updating status message, please wait...").await?;
-    
-    // let msg = ctx.say("this will be updated soon, please wait").await?;
-    // let msg = msg.message().await?;
 
     let entry: (u64, u64, String) = (msg.channel_id.into(), msg.id.into(), name);
     usm.push(entry.clone());
 
     let conn = data
         .get_mut::<DbConnection>()
-        .ok_or("DataError: Unable to fetch database connection")?;
+        .ok_or("DataError: Unable to get database connection")?;
 
     db::add_updating_status_message(conn, entry).await?;
 
@@ -157,7 +154,7 @@ This requires admin privileges.".into()
 pub async fn delete_updating_status(
     ctx: Context<'_>,
     #[description = "Message"] message: serenity::Message,
-) -> CommandResult {
+) -> Result<(), Error> {
     let c = message.channel_id;
     let m = message.id;
 
@@ -165,11 +162,11 @@ pub async fn delete_updating_status(
 
     {
         // Maybe weird, but sqlx doesn't throw an error if nothing is deleted, and this way i don't have to grab usms twice
-        let conn = data.get_mut::<DbConnection>().unwrap(); // TODO unwrap
+        let conn = data.get_mut::<DbConnection>().ok_or("DataError: Unable to get database connection")?;
         remove_updating_status_message(conn, c, m).await?;
     }
 
-    let usms = data.get_mut::<UpdatingStatusMessages>().unwrap(); // TODO unwrap
+    let usms = data.get_mut::<UpdatingStatusMessages>().ok_or("DataError: Unable to get updating status messages")?; // TODO unwrap
     if !usms
         .iter()
         .any(|(ci, mi, _name)| *ci == c.get() && *mi == m.get())

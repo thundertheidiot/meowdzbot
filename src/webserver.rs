@@ -100,7 +100,7 @@ async fn server_data(
     let socks = match data.get::<ServerSocket>() {
         Some(v) => v,
         None => {
-            return Err(Json("DataError: Unable to fetch sockets".to_string()));
+            return Err(Json("DataError: Unable to get sockets".to_string()));
         }
     };
 
