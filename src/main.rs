@@ -1,3 +1,4 @@
+use crate::socket::delete_server;
 use crate::socket::ServerSocket;
 use crate::status::activity::bot_status_loop;
 use crate::status::status;
@@ -117,6 +118,7 @@ async fn main() -> Result<(), Error> {
                 help(),
                 status(),
                 create_server(),
+		delete_server(),
                 list_servers(),
                 set_external_redirector(),
                 create_updating_status(),

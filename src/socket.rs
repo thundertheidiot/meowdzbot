@@ -68,6 +68,32 @@ pub async fn create_server(
     Ok(())
 }
 
+#[poise::command(slash_command, check = "privilege_check")]
+pub async fn delete_server(
+    ctx: Context<'_>,
+    #[description = "Server identifier"] name: String,
+) -> CommandResult {
+    let mut data = ctx.serenity_context().data.write().await;
+
+    let addresses = data.get_mut::<ServerAddress>().ok_or("DataError: Unable to get server addresses")?;
+    addresses.retain(|s_name, _addr| *s_name != name);
+
+    let sockets = data.get_mut::<ServerSocket>().ok_or("DataError: Unable to get server sockets")?;
+    sockets.remove(&name);
+
+
+    let conn = data.get_mut::<DbConnection>().ok_or("DataError: Unable to get database connection")?;
+    remove_server_address(conn, &name).await?;
+
+    ctx.send(
+	CreateReply::default()
+	    .content(format!("Successfully deleted {}", name))
+	    .ephemeral(true)
+    ).await?;
+
+    Ok(())
+}
+
 #[poise::command(slash_command)]
 pub async fn list_servers(ctx: Context<'_>) -> CommandResult {
     let data = ctx.serenity_context().data.read().await;

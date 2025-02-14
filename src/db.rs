@@ -41,6 +41,19 @@ ON CONFLICT(key) DO UPDATE SET value = excluded.value",
     Ok(())
 }
 
+pub async fn remove_server_address(
+    conn: &mut SqliteConnection,
+    name: &String,
+) -> Result<(), Error> {
+    sqlx::query!(
+	"DELETE FROM server_address WHERE key = ?",
+	name
+    ).execute(conn)
+	.await?;
+
+    Ok(())
+}
+
 pub async fn read_server_address(
     conn: &mut SqliteConnection,
 ) -> Result<HashMap<String, String>, Error> {
