@@ -1,11 +1,12 @@
 use core::str;
 use std::{io, str::Utf8Error};
+use serde::Serialize;
 use tokio::net::UdpSocket;
 use crate::parse_to_string;
 
 use crate::request::{send_request, Query};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub enum ServerType {
     Dedicated,
     NonDedicated,
@@ -24,7 +25,7 @@ impl From<u8> for ServerType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub enum ServerEnvironment {
     Linux,
     Windows,
@@ -43,7 +44,7 @@ impl From<u8> for ServerEnvironment {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub enum ServerVisibility {
     Public,
     Private,
@@ -60,7 +61,7 @@ impl From<u8> for ServerVisibility {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub enum VAC {
     Unsecured,
     Secured,
@@ -77,7 +78,7 @@ impl From<u8> for VAC {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ServerInfo {
     pub protocol: u8,
     pub name: String,

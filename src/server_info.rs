@@ -1,96 +1,91 @@
-use crate::db::{DbConnection, ServerAddress};
-use crate::ServerSocket;
-use ::serenity::all::{CreateActionRow, CreateButton};
-use csgo_server::players::Player;
-use csgo_server::{info::get_server_info, players::get_players};
+use csgo_server::{info::ServerInfo, players::Players};
+use once_cell::sync::Lazy;
+use serde::Serialize;
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::SystemTime;
 use tokio::net::UdpSocket;
-use urlencoding::encode;
+use tokio::sync::RwLock;
 
-use crate::Context;
+use csgo_server::info;
+
 use crate::Error;
 
-use crate::serenity::standard::CommandResult;
-use poise::{serenity_prelude as serenity, CreateReply};
-
-async fn get_real_player_count(sock: &UdpSocket) -> Result<usize, Error> {
-    Ok(get_players(sock).await?.real().0.len())
+#[derive(Debug, Clone, Serialize)]
+pub struct Info {
+    pub server_info: ServerInfo,
+    pub players: Players,
+    timestamp: SystemTime,
 }
 
-fn map_str(map: &str) -> String {
-    let mut map = map;
+struct StringError(String);
 
-    if map.chars().nth(2) == Some('_') {
-        map = &map[3..];
+use std::fmt;
+impl fmt::Display for StringError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Error: {}", self.0)
     }
-
-    String::from(map)
 }
 
-pub async fn bot_status(sock: &UdpSocket) -> Result<String, Error> {
-    let info = get_server_info(sock).await?;
-    let players = get_real_player_count(sock).await?;
-
-    Ok(format!("{} - {} players", map_str(&info.map), players))
+impl fmt::Debug for StringError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Error: {}", self.0)
+    }
 }
 
-fn format_players(mut players: Vec<Player>) -> String {
-    players.sort_by(|a, b| b.score.cmp(&a.score));
+impl std::error::Error for StringError {}
 
-    players
-        .into_iter()
-        .enumerate()
-        .map(|(i, p)| format!("{: >2}. {:^20} --- score: {}\n", i + 1, p.name, p.score))
-        .collect::<String>()
-}
+static INFO: Lazy<Arc<RwLock<HashMap<String, Info>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
-#[poise::command(slash_command, prefix_command, required_permissions = "SEND_MESSAGES")]
-pub async fn status(
-    ctx: Context<'_>,
-    #[description = "Server identifier"] name: String,
-) -> CommandResult {
-    let data = ctx.serenity_context().data.read().await;
+pub async fn get_server_info(
+    socks: &HashMap<String, UdpSocket>,
+    name: &String,
+) -> Result<Info, Error> {
+    let sock = socks
+        .get(name)
+        .ok_or(format!("SocketError: Unable to get socket of {}", name))?;
 
-    let socks = data.get::<ServerSocket>().ok_or("Unable to get sockets")?;
+    let mut infomap = INFO.write().await;
 
-    match socks.get(&name) {
-	Some(sock) => {
-            let info = get_server_info(sock).await?;
-            let mut players = get_players(sock).await?.real().0;
+    match infomap.get(name) {
+        Some(v) => {
+            if let Ok(duration) = SystemTime::now().duration_since(v.timestamp) {
+                if duration.as_secs() >= 5 {
+                    println!("Fetching new data for {}", name);
 
-	    let button = match data.get::<ServerAddress>().and_then(|v| v.get(&name)) {
-		Some(v) => vec![
-		    CreateButton::new_link(
-			format!("http://localhost:8080/{}",
-				encode(v))
-		    ).label("Connect").emoji('🐈')
-		],
-		None => vec![],
-	    };
+                    let server_info = info::get_server_info(sock).await?;
+                    let players = csgo_server::players::get_players(sock).await?;
 
-            let content = format!(
-                r#"
-{}
-`{} - {} players online`
-Player list:
-```
-{}
-```
-Open CS:GO before pressing connect
-"#,
-                info.name,
-                info.map,
-                players.len(),
-                format_players(players),
-            );
+                    let info = Info {
+                        server_info,
+                        players,
+                        timestamp: SystemTime::now(),
+                    };
 
-	    // ctx.say(content).await?
-	    ctx.send(
-		CreateReply::default().content(content)
-		    .components(vec![CreateActionRow::Buttons(button)])
-	    ).await?
-	},
-	None => ctx.say("ligma").await?,
-    };
+                    infomap.insert(name.clone(), info.clone());
 
-    Ok(())
+                    return Ok(info);
+                }
+            }
+
+            Ok(v.clone())
+        }
+        None => {
+            println!("First data fetch for {}", name);
+
+            let server_info = info::get_server_info(sock).await?;
+            let players = csgo_server::players::get_players(sock).await?;
+
+            let info = Info {
+                server_info,
+                players,
+                timestamp: SystemTime::now(),
+            };
+
+            infomap.insert(name.clone(), info.clone());
+
+            Ok(info)
+        }
+    }
 }

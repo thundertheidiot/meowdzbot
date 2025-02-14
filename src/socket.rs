@@ -1,5 +1,8 @@
-use tokio::sync::RwLockWriteGuard;
+use once_cell::sync::Lazy;
+use poise::CreateReply;
 use std::collections::HashMap;
+use tokio::sync::RwLock;
+use tokio::sync::RwLockWriteGuard;
 
 use crate::db::{store_server_address, DbConnection, ServerAddress};
 use crate::serenity::standard::CommandResult;
@@ -19,7 +22,7 @@ impl TypeMapKey for ServerSocket {
     type Value = HashMap<String, UdpSocket>;
 }
 
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 pub async fn update_socket<T: ToSocketAddrs>(
     sockets: &mut HashMap<String, UdpSocket>,
@@ -33,38 +36,64 @@ pub async fn update_socket<T: ToSocketAddrs>(
     Ok(())
 }
 
-#[poise::command(slash_command)]
-pub async fn set_address(
+use crate::privilege_check;
+#[poise::command(slash_command, check = "privilege_check")]
+pub async fn create_server(
     ctx: Context<'_>,
     #[description = "Server identifier"] name: String,
     #[description = "Server address"] addr: String,
 ) -> CommandResult {
     let mut data = ctx.serenity_context().data.write().await;
 
-    dbg!(&name);
-    dbg!(&addr);
-
     let addrs = data
         .get_mut::<ServerAddress>()
         .ok_or("Unable to get addresses")?;
     _ = addrs.insert(name.clone(), addr.clone());
 
-    dbg!(&addrs);
+    let addrs = addrs.clone();
 
     ctx.say(format!("Server `{}` address set to {}", &name, &addr))
         .await?;
 
-    let addrs = data
-        .get::<ServerAddress>()
-        .ok_or("Unable to get read only addresses")?
-        .clone();
     let conn = data
         .get_mut::<DbConnection>()
         .ok_or("Unable to get database")?;
     store_server_address(conn, addrs).await?;
 
-    let sockets = data.get_mut::<ServerSocket>().ok_or("Unable to get sockets")?;
-    update_socket(sockets, name, addr).await?;
+    let sockets = data
+        .get_mut::<ServerSocket>()
+        .ok_or("Unable to get sockets")?;
+    update_socket(sockets, name.clone(), addr).await?;
+
+    Ok(())
+}
+
+#[poise::command(slash_command)]
+pub async fn list_servers(ctx: Context<'_>) -> CommandResult {
+    let data = ctx.serenity_context().data.read().await;
+
+    let addrs = data
+        .get::<ServerAddress>()
+        .ok_or("DataError: Unable to fetch addresses")?;
+
+    let list = addrs
+        .iter()
+        .map(|(name, addr)| format!("{} - {}\n", name, addr))
+        .collect::<String>();
+
+    ctx.send(
+        CreateReply::default()
+            .content(format!(
+                r#"
+```
+{}
+```
+"#,
+                list
+            ))
+            .ephemeral(true),
+    )
+    .await?;
 
     Ok(())
 }

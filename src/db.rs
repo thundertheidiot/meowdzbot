@@ -1,3 +1,4 @@
+use crate::settings::Settings;
 use poise::serenity_prelude::prelude::TypeMapKey;
 use serenity::prelude::TypeMap;
 use sqlx::AnyConnection;
@@ -5,8 +6,9 @@ use sqlx::Connection;
 use sqlx::Database;
 use sqlx::Executor;
 use sqlx::SqliteConnection;
-use tokio::sync::RwLockReadGuard;
 use std::collections::HashMap;
+use tokio::sync::RwLockReadGuard;
+use tokio::sync::RwLockWriteGuard;
 
 type Error = crate::Error;
 type Context<'a> = crate::Context<'a>;
@@ -33,7 +35,7 @@ ON CONFLICT(key) DO UPDATE SET value = excluded.value",
             value
         )
         .execute(&mut *conn)
-        .await;
+        .await?;
     }
 
     Ok(())
@@ -52,33 +54,28 @@ pub async fn read_server_address(
         .collect())
 }
 
-pub struct Settings {
-    external_redirector_address: String,
-}
-impl TypeMapKey for Settings {
-    type Value = Settings;
-}
+pub async fn store_settings(settings: Settings, conn: &mut SqliteConnection) -> Result<(), Error> {
+    _ = sqlx::query!(
+        "INSERT INTO settings (id, external_redirector_address) VALUES (1, ?)
+ON CONFLICT(id) DO UPDATE SET external_redirector_address = excluded.external_redirector_address",
+        settings.external_redirector_address
+    )
+    .execute(conn)
+    .await?;
 
-impl Default for Settings {
-    fn default() -> Self {
-	Settings {
-	    external_redirector_address: "http://localhost:8080".to_string(),
-	}
-    }
+    Ok(())
 }
 
-// pub async fn read_settings<'a, DB, C>(
-//     mut data: RwLockReadGuard<'_, TypeMap>,
-//     conn: &mut SqliteConnection,
-// ) -> Result<(), Error>
-// {
-//     let rows = sqlx::query!("SELECT external_redirector_address FROM settings WHERE id = 1").fetch_one(conn).await?;
+pub async fn read_settings(
+    data: &mut RwLockWriteGuard<'_, TypeMap>,
+    conn: &mut SqliteConnection,
+) -> Result<(), Error> {
+    let settings = sqlx::query_as!(Settings, "SELECT * FROM settings WHERE id = 1")
+        .fetch_one(conn)
+        .await
+        .unwrap_or_default();
 
-//     let settings = Settings {
-// 	external_redirector_address: rows.external_redirector_address.ok_or("DBError: Unable to get external redirector address")?,
-//     };
+    data.insert::<Settings>(settings);
 
-//     data.insert::<Settings>(settings);
-    
-//     Ok(())
-// }
+    Ok(())
+}

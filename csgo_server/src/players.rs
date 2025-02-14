@@ -1,9 +1,10 @@
+use serde::Serialize;
 use std::{io, str::Utf8Error};
 use tokio::net::UdpSocket;
 
 use crate::{parse_to_string, request::{send_request, Query}};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Player {
     pub index: u8,
     pub name: String,
@@ -47,7 +48,7 @@ impl Player {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Players (pub Vec<Player>);
 
 impl TryFrom<Vec<u8>> for Players {

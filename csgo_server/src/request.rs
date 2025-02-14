@@ -30,7 +30,7 @@ impl Query {
 }
 
 pub async fn send_request(sock: &UdpSocket, query: Query) -> io::Result<Vec<u8>> {
-    let mut buf = [0; 1400];
+    let mut buf = [0; 4096];
 
     let mut request: Vec<u8> = Vec::with_capacity(30);
 
