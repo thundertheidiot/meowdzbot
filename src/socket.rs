@@ -1,4 +1,3 @@
-use poise::CreateReply;
 use std::collections::HashMap;
 use std::io;
 
@@ -6,7 +5,6 @@ use poise::serenity_prelude::prelude::TypeMapKey;
 use tokio::net::{ToSocketAddrs, UdpSocket};
 
 type Error = crate::Error;
-type Context<'a> = crate::Context<'a>;
 
 pub struct ServerSocket;
 pub type ServerSocketValue = HashMap<String, (UdpSocket, UdpSocket)>;

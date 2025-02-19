@@ -1,6 +1,5 @@
 use crate::servers::Servers;
 use crate::Error;
-use crate::server_info::Info;
 use crate::ServerSocket;
 use crate::settings::Settings;
 
@@ -35,6 +34,16 @@ async fn bot_status(data: RwLockReadGuard<'_, TypeMap>) -> Result<String, Error>
     ))
 }
 
+fn map_str(map: &str) -> String {
+    let mut map = map;
+
+    if map.chars().nth(2) == Some('_') {
+        map = &map[3..];
+    }
+
+    String::from(map)
+}
+
 pub async fn bot_status_loop(ctx: Arc<serenity::Context>) {
     let mut interval = time::interval(Duration::from_secs(2));
 
@@ -51,37 +60,5 @@ pub async fn bot_status_loop(ctx: Arc<serenity::Context>) {
 	    })),
 	    Err(e) => eprintln!("{e}"),
 	}
-
-	// let max = match settings.activity_server_max_players.as_ref() {
-	//     Some(v) => v,
-	//     None => &16,
-	// };
-
-        // match data.get::<ServerSocket>() {
-        //     Some(socks) => match get_server_info(socks, ident).await {
-        //         Ok(info) => {
-        //             let status = bot_status(info, max);
-
-        //             ctx.set_activity(Some(serenity::ActivityData {
-        //                 name: status,
-        //                 kind: ActivityType::Playing,
-        //                 state: None,
-        //                 url: None,
-        //             }));
-        //         }
-        //         Err(e) => eprintln!("Error getting server information: {e}"),
-        //     },
-        //     None => eprintln!("DataError: Unable to get sockets"),
-        // }
     }
-}
-
-fn map_str(map: &str) -> String {
-    let mut map = map;
-
-    if map.chars().nth(2) == Some('_') {
-        map = &map[3..];
-    }
-
-    String::from(map)
 }

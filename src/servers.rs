@@ -1,3 +1,4 @@
+use std::fmt::Write;
 use crate::servers::db::remove_server;
 use crate::ServerSocket;
 use crate::db::DbConnection;
@@ -52,15 +53,8 @@ pub async fn create_server(
 	None => 16,
     };
 
-    let legacy: bool = match legacy {
-	Some(v) => v,
-	None => true,
-    };
-
-    let allow_upload_required: bool = match allow_upload_required {
-	Some(v) => v,
-	None => false,
-    };
+    let legacy = legacy.unwrap_or(true);
+    let allow_upload_required = allow_upload_required.unwrap_or(false);
 
     let server = Server {
 	name: name.clone(),
@@ -73,7 +67,7 @@ pub async fn create_server(
     let mut data = ctx.serenity_context().data.write().await;
 
     let conn = data.get_mut::<DbConnection>().ok_or("DataError: Unable to database connection")?;
-    _ = db::write_server(&server, conn).await?;
+    db::write_server(&server, conn).await?;
 
     let servers = data.get_mut::<Servers>().ok_or("DataError: Unable to get servers")?;
     servers.insert(name, server);
@@ -130,8 +124,10 @@ pub async fn list_servers(ctx: Context<'_>) -> Result<(), Error> {
 
     let list = servers
         .iter()
-        .map(|(name, server)| format!("{} - {}\n", name, server.addr))
-        .collect::<String>();
+	.fold(String::new(), |mut output, (name, server)| {
+	    _ = write!(output, "{} - {}\n", name, server.addr);
+	    output
+	});
 
     ctx.send(
         CreateReply::default()

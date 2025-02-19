@@ -4,7 +4,6 @@ use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::SystemTime;
-use tokio::net::UdpSocket;
 use tokio::sync::RwLock;
 
 use csgo_server::info;
