@@ -1,5 +1,7 @@
+use tokio::time::Duration;
 use tokio::net::ToSocketAddrs;
 use tokio::net::UdpSocket;
+use tokio::time;
 use std::io;
 
 pub async fn create_socket<A: ToSocketAddrs>(address: A) -> io::Result<UdpSocket> {
@@ -30,6 +32,7 @@ impl Query {
 
 pub async fn send_request(sock: &UdpSocket, query: Query) -> io::Result<Vec<u8>> {
     let mut buf = [0; 4096];
+    let timeout = Duration::from_secs(5);
 
     let mut request: Vec<u8> = Vec::with_capacity(30);
 
@@ -38,18 +41,18 @@ pub async fn send_request(sock: &UdpSocket, query: Query) -> io::Result<Vec<u8>>
 
     request.extend_from_slice(query.get());
 
-    sock.send(&request).await?;
+    _ = time::timeout(timeout, sock.send(&request)).await?;
 
-    let len = sock.recv(&mut buf).await?;
+    let len = time::timeout(timeout, sock.recv(&mut buf)).await?.unwrap();
     // Challenge mechanism
-    if buf[4] == 0x41 {
+    while buf[4] == 0x41 {
 	if query == Query::Player {
 	    request.truncate(5); // FF FF FF FF 'U'
 	}
 	
 	request.extend_from_slice(&buf[5..len]);
-	sock.send(&request).await?;
-	let _ = sock.recv(&mut buf).await?;
+	_ = time::timeout(timeout, sock.send(&request)).await?;
+	_ = time::timeout(timeout, sock.recv(&mut buf)).await?;
     }
 
     Ok(buf.to_vec())

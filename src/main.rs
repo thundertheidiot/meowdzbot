@@ -119,6 +119,10 @@ async fn main() -> Result<(), Error> {
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+
+		// Webserver
+		tokio::spawn(server(Arc::new(ctx.clone())));
+
                 Ok(UserData {})
             })
         })

@@ -9,21 +9,30 @@ use tokio::net::{ToSocketAddrs, UdpSocket};
 type Error = crate::Error;
 type Context<'a> = crate::Context<'a>;
 
-use csgo_server::request::create_socket;
-
 pub struct ServerSocket;
+pub type ServerSocketValue = HashMap<String, (UdpSocket, UdpSocket)>;
 impl TypeMapKey for ServerSocket {
-    type Value = HashMap<String, UdpSocket>;
+    type Value = ServerSocketValue;
+}
+
+async fn create_sockets<A: ToSocketAddrs>(address: A) -> io::Result<(UdpSocket, UdpSocket)> {
+    let a = UdpSocket::bind("0.0.0.0:0").await?;
+    let b = UdpSocket::bind("0.0.0.0:0").await?;
+
+    a.connect(&address).await?;
+    b.connect(&address).await?;
+
+    Ok((a, b))
 }
 
 pub async fn update_socket<T: ToSocketAddrs>(
-    sockets: &mut HashMap<String, UdpSocket>,
+    sockets: &mut ServerSocketValue,
     name: String,
     addr: T,
 ) -> Result<(), Error> {
-    let sock = create_socket(addr).await?;
+    let socks = create_sockets(addr).await?;
 
-    sockets.insert(name, sock);
+    sockets.insert(name, socks);
 
     Ok(())
 }
