@@ -1,17 +1,21 @@
-use crate::socket::delete_server;
+use crate::servers::Servers;
+use crate::servers::create_server;
+use crate::servers::delete_server;
 use crate::socket::ServerSocket;
 use crate::status::activity::bot_status_loop;
 use crate::status::status;
 use crate::webserver::server;
-use db::read_server_address;
 use db::DbConnection;
-use db::ServerAddress;
+use once_cell::sync::Lazy;
 use poise::serenity_prelude as serenity;
+use poise::CreateReply;
+use servers::db::read_servers;
+use servers::Server;
 use settings::db::read_settings;
 use settings::set_external_redirector;
-use socket::create_server;
-use socket::list_servers;
+use servers::list_servers;
 use socket::update_socket;
+use socket::ServerSocketValue;
 use sqlx::Connection;
 use sqlx::SqliteConnection;
 use status::updating::create_updating_status;
@@ -19,6 +23,8 @@ use status::updating::db::read_updating_status_messages;
 use status::updating::delete_updating_status;
 use status::updating::status_message_update_loop;
 use status::updating::UpdatingStatusMessages;
+use tokio::sync::RwLock;
+use tokio::task::JoinHandle;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::Level;
@@ -33,6 +39,7 @@ mod settings;
 mod socket;
 mod status;
 mod webserver;
+mod servers;
 
 struct UserData {}
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -178,11 +185,12 @@ async fn main() -> Result<(), Error> {
 
         sqlx::migrate!().run(&mut conn).await?;
 
-        let addresses = read_server_address(&mut conn).await?;
+	let mut servers: HashMap<String, Server> = HashMap::new();
+	read_servers(&mut servers, &mut conn).await?;
 
-        let mut sockets = HashMap::new();
-        for (n, a) in addresses.clone() {
-            match update_socket(&mut sockets, n, a).await {
+	let mut sockets: ServerSocketValue = HashMap::new();
+        for (n, a) in &servers {
+            match update_socket(&mut sockets, n.clone(), &a.addr).await {
                 Ok(_) => (),
                 Err(e) => eprintln!("Unable to create socket: {e:#?}."),
             };
@@ -191,7 +199,7 @@ async fn main() -> Result<(), Error> {
         read_settings(&mut data, &mut conn).await?;
         data.insert::<UpdatingStatusMessages>(read_updating_status_messages(&mut conn).await?);
         data.insert::<ServerSocket>(sockets);
-        data.insert::<ServerAddress>(addresses);
+        data.insert::<Servers>(servers);
         data.insert::<DbConnection>(conn);
     }
 

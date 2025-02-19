@@ -1,34 +1,33 @@
 pub mod activity;
 pub mod updating;
 
-use crate::db::ServerAddress;
+use crate::servers::Server;
 use crate::serenity::CreateActionRow;
 use crate::server_info::get_server_info;
+use crate::servers::Servers;
 use crate::settings::Settings;
-use crate::socket::ServerSocket;
+use crate::socket::{ServerSocket, ServerSocketValue};
 use crate::{Context, Error};
 use ::serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
 use csgo_server::players::Player;
 use poise::serenity_prelude as serenity;
 use poise::CreateReply;
-use std::collections::HashMap;
-use tokio::net::UdpSocket;
 use urlencoding::encode;
 
 use serenity::all::CreateButton;
 
 pub async fn make_status_message(
     external_redirector: Option<String>,
-    socks: &HashMap<String, UdpSocket>,
-    name: &String,
-    address: Option<&str>,
+    socks: &ServerSocketValue,
+    name: &String, // not really required, but servers are stored as a hashmap
+    server: &Server,
 ) -> Result<(CreateEmbed, Vec<CreateActionRow>), Error> {
     let info = get_server_info(socks, name).await?;
     let s_info = info.server_info;
     let players = info.players.real().0;
 
-    let button = match (external_redirector, address) {
-        (Some(r), Some(a)) => vec![CreateButton::new_link(format!("{}/{}", r, encode(a)))
+    let button = match external_redirector {
+        Some(r) => vec![CreateButton::new_link(format!("{}/{}", r, encode(&server.addr)))
             .label("Connect")
             .emoji('📡')],
         _ => vec![],
@@ -39,15 +38,20 @@ pub async fn make_status_message(
         .color(Colour::DARK_PURPLE) // TODO make color reflect player count
         .description(format!(
             r#"
-`{} - {} players online`
+`{} - {}/{} players online`
 
 ```
 {}
 ```
+Connect manually:
+`{}connect {}`
 "#,
             s_info.map,
             players.len(),
-            format_players(players)
+	    server.max_player_count,
+            format_players(players),
+	    if server.allow_upload_required {"sv_allowupload 1; "} else {""},
+	    server.addr
         ));
 
     if !button.is_empty() {
@@ -77,12 +81,15 @@ pub async fn status(
         .get::<ServerSocket>()
         .ok_or("DataError: Unable to get sockets")?;
 
+    let server = data.get::<Servers>()
+	.ok_or("DataError: Unable to get servers")?
+	.get(&name).ok_or(format!("ServerError: Unable to get server {}", &name))?;
+
     let (embed, action) = make_status_message(
         Some(redirect),
         socks,
         &name,
-        data.get::<ServerAddress>()
-            .and_then(|v| v.get(&name).and_then(|v| Some(v.as_str()))),
+	server,
     )
     .await?;
 

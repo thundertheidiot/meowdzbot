@@ -1,3 +1,4 @@
+use crate::servers::Servers;
 use db::remove_updating_status_message;
 use std::sync::Arc;
 use std::time::Duration;
@@ -11,11 +12,48 @@ use sqlx::SqliteConnection;
 
 use crate::settings::Settings;
 use crate::{db::DbConnection, Context};
-use crate::{db::ServerAddress, socket::ServerSocket, status::make_status_message, Error};
+use crate::{socket::ServerSocket, status::make_status_message, Error};
 
 pub struct UpdatingStatusMessages;
 impl TypeMapKey for UpdatingStatusMessages {
     type Value = Vec<(u64, u64, String)>;
+}
+
+async fn update_status_message(
+    channel_id: u64,
+    message_id: u64,
+    name: String,
+    ctx: Arc<serenity::Context>,
+) -> Result<(), Error> {
+    let http = ctx.http();
+
+    let c= ChannelId::new(channel_id);
+    let m = MessageId::new(message_id);
+
+    let mut msg = http.get_message(c, m).await?;
+    let data = ctx.data.read().await;
+
+    let redirector: Option<String> = data
+        .get::<Settings>()
+        .and_then(|s| s.external_redirector_address.clone());
+
+    let server = data.get::<Servers>()
+	.ok_or("DataError: Unable to get servers")?
+	.get(&name).ok_or(format!("ServerError: Unable to get server {}", &name))?;
+
+    let socks = data.get::<ServerSocket>().ok_or("DataError: Unable to get sockets")?;
+
+    let (embed, action) = make_status_message(redirector, socks, &name, server).await?;
+
+    msg.edit(
+	http,
+	EditMessage::new()
+	    .content("")
+	    .embed(embed)
+	    .components(action)
+    ).await?;
+    
+    Ok(())
 }
 
 pub async fn status_message_update_loop(ctx: Arc<serenity::Context>) {
@@ -33,54 +71,12 @@ pub async fn status_message_update_loop(ctx: Arc<serenity::Context>) {
                     let ctx = ctx.clone();
 
                     tokio::spawn(async move {
-                        let http = ctx.http();
-
-                        let ci = ChannelId::new(c);
-                        let mi = MessageId::new(m);
-
-                        match http.get_message(ci, mi).await {
-                            Ok(mut msg) => {
-                                let data = ctx.data.read().await;
-
-                                let redirector: Option<String> = data
-                                    .get::<Settings>()
-                                    .and_then(|s| s.external_redirector_address.clone());
-
-                                let address: Option<&str> = data
-                                    .get::<ServerAddress>()
-                                    .and_then(|v| v.get(&name).and_then(|v| Some(v.as_str())));
-
-                                match data.get::<ServerSocket>() {
-                                    Some(socks) => {
-                                        match make_status_message(redirector, socks, &name, address)
-                                            .await
-                                        {
-                                            Ok((embed, action)) => {
-                                                if let Err(e) = msg
-                                                    .edit(
-                                                        http,
-                                                        EditMessage::new()
-                                                            .content("")
-                                                            .embed(embed)
-                                                            .components(action),
-                                                    )
-                                                    .await
-                                                {
-                                                    eprintln!("Error editing message: {e}");
-                                                }
-                                            }
-                                            Err(e) => eprintln!("Error making status: {e}"),
-                                        }
-                                    }
-                                    None => eprintln!("DataError: Unable to get sockets"),
-                                }
-                            }
-                            Err(e) => eprintln!("Unable to get message: {e}"),
-                        }
+			match update_status_message(c, m, name, ctx).await {
+			    Ok(_) => (),
+			    Err(e) => eprintln!("{e}"),
+			}
                     });
                 }
-
-                ()
             }
             None => eprintln!("DataError: Unable to get usm"),
         }
