@@ -1,5 +1,6 @@
 use crate::server_info::Info;
 use crate::ServerSocket;
+use crate::settings::Settings;
 
 use crate::server_info::get_server_info;
 use poise::serenity_prelude as serenity;
@@ -14,12 +15,29 @@ pub async fn bot_status_loop(ctx: Arc<serenity::Context>) {
 
     loop {
         interval.tick().await;
-
         let data = ctx.data.read().await;
+	let settings = match data.get::<Settings>().ok_or("DataError: Unable to get settings") {
+	    Ok(v) => v,
+	    Err(e) => {
+		eprintln!("{e}");
+		continue;
+	    }
+	};
+
+	let ident = match settings.activity_server_identifier.as_ref() {
+	    Some(v) => v,
+	    None => &"meow".to_string(),
+	};
+
+	let max = match settings.activity_server_max_players.as_ref() {
+	    Some(v) => v,
+	    None => &16,
+	};
+
         match data.get::<ServerSocket>() {
-            Some(socks) => match get_server_info(socks, &"meow".to_string()).await {
+            Some(socks) => match get_server_info(socks, ident).await {
                 Ok(info) => {
-                    let status = bot_status(info);
+                    let status = bot_status(info, max);
 
                     ctx.set_activity(Some(serenity::ActivityData {
                         name: status,
@@ -45,10 +63,12 @@ fn map_str(map: &str) -> String {
     String::from(map)
 }
 
-pub fn bot_status(info: Info) -> String {
+pub fn bot_status(info: Info, max: &i64) -> String {
     format!(
-        "{} - {} players",
+        "{} - {}/{} players",
         map_str(&info.server_info.map),
-        info.players.real().0.len()
+        info.players.real().0.len(),
+	max
     )
 }
+

@@ -55,6 +55,20 @@ pub async fn help(ctx: Context<'_>, command: Option<String>) -> Result<(), Error
     Ok(())
 }
 
+#[poise::command(slash_command, check = "privilege_check")]
+async fn restart(ctx: Context<'_>) -> Result<(), Error> {
+    ctx.send(
+	CreateReply::default()
+	    .content("restarting...")
+	    .ephemeral(true)
+    ).await?;
+
+    std::process::exit(0); 
+}
+
+
+static TASKS: Lazy<Arc<RwLock<Vec<JoinHandle<()>>>>> =
+    Lazy::new(|| Arc::new(RwLock::new(Vec::new())));
 async fn event_handler(
     ctx: &serenity::Context,
     event: &serenity::FullEvent,
@@ -65,19 +79,44 @@ async fn event_handler(
         serenity::FullEvent::Ready { data_about_bot, .. } => {
             println!("Logged in as {}", data_about_bot.user.name);
 
-            tokio::spawn(bot_status_loop(Arc::new(ctx.clone())));
-            tokio::spawn(status_message_update_loop(Arc::new(ctx.clone())));
-            tokio::spawn(server(Arc::new(ctx.clone())));
+	    let tasks = vec![
+		tokio::spawn(bot_status_loop(Arc::new(ctx.clone()))),
+		tokio::spawn(status_message_update_loop(Arc::new(ctx.clone()))),
+	    ];
+
+	    let mut t = TASKS.write().await;
+	    t.clear();
+	    t.extend(tasks);
         }
+	serenity::FullEvent::Resume { event, .. } => {
+	    println!("resumed, {event:#?}");
+
+	    let mut t = TASKS.write().await;
+	    for task in t.iter() {
+		task.abort();
+	    }
+
+	    let tasks = vec![
+		tokio::spawn(bot_status_loop(Arc::new(ctx.clone()))),
+		tokio::spawn(status_message_update_loop(Arc::new(ctx.clone()))),
+	    ];
+
+	    t.clear();
+	    t.extend(tasks);
+	}
         _ => {}
     }
     Ok(())
 }
 
 async fn privilege_check(ctx: Context<'_>) -> Result<bool, Error> {
-    let thunder = ctx.author().id.get() == 349607458324348930;
+    let id = ctx.author().id.get();
 
-    Ok(thunder)
+    let thunder = id == 349607458324348930;
+    let yugge = id == 224271935989612545;
+    let strawbarry = id == 270112207344369665;
+
+    Ok(thunder || yugge || strawbarry)
 }
 
 #[tokio::main]
@@ -102,6 +141,7 @@ async fn main() -> Result<(), Error> {
             commands: vec![
                 register(),
                 help(),
+		restart(),
                 status(),
                 create_server(),
                 delete_server(),

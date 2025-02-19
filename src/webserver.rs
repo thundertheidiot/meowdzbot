@@ -80,7 +80,7 @@ async fn gamestate_handler(
 
 async fn steam_connect(Path(path): Path<String>) -> impl IntoResponse {
     let html_content = format!(
-        r#"<!DOCTYPE html><html><head><script>window.open("steam://connect/{}", "_self");window.close();</script></head></html>"#,
+        r#"<!DOCTYPE html><html><head><script>window.open("steam://connect/{}", "_self");</script></head></html>"#,
         decode(&path).unwrap_or("INVALID".into())
     );
     Html(html_content)
@@ -92,6 +92,9 @@ async fn handle_get() -> impl IntoResponse {
     Html(html_content)
 }
 
+/// Returns data for servers as a json blob, so that other people can integrate the bot data
+/// Remember that player count does not represent the real player count, it has GOTV and spectators included
+/// Filter out "DatHost - GOTV" and empty names
 async fn server_data(
     State(ctx): State<Arc<serenity::Context>>,
     Path(path): Path<String>,
@@ -127,7 +130,9 @@ pub async fn server(ctx: Arc<serenity::Context>) -> Result<(), Error> {
 
     println!("Listening on http://0.0.0.0:8080");
 
-    axum::serve(listener, app).await?;
+    if let Err(e) = axum::serve(listener, app).await {
+	eprintln!("Webserver error: {e}");
+    };
 
     Ok(())
 }

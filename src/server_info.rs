@@ -8,7 +8,9 @@ use tokio::net::UdpSocket;
 use tokio::sync::RwLock;
 
 use csgo_server::info;
+use csgo_server::players;
 
+use crate::socket::ServerSocketValue;
 use crate::Error;
 
 #[derive(Debug, Clone, Serialize)]
@@ -22,10 +24,10 @@ static INFO: Lazy<Arc<RwLock<HashMap<String, Info>>>> =
     Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 pub async fn get_server_info(
-    socks: &HashMap<String, UdpSocket>,
+    socks: &ServerSocketValue,
     name: &String,
 ) -> Result<Info, Error> {
-    let sock = socks
+    let socks = socks
         .get(name)
         .ok_or(format!("SocketError: Unable to get socket of {}", name))?;
 
@@ -35,8 +37,8 @@ pub async fn get_server_info(
         Some(v) => {
             if let Ok(duration) = SystemTime::now().duration_since(v.timestamp) {
                 if duration.as_secs() >= 5 {
-                    let server_info = info::get_server_info(sock).await?;
-                    let players = csgo_server::players::get_players(sock).await?;
+                    let server_info = info::get_server_info(&socks.0).await?;
+                    let players = players::get_players(&socks.1).await?;
 
                     let info = Info {
                         server_info,
@@ -55,8 +57,8 @@ pub async fn get_server_info(
         None => {
             println!("First data fetch for {}", name);
 
-            let server_info = info::get_server_info(sock).await?;
-            let players = csgo_server::players::get_players(sock).await?;
+            let server_info = info::get_server_info(&socks.0).await?;
+            let players = players::get_players(&socks.1).await?;
 
             let info = Info {
                 server_info,

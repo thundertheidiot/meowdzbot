@@ -56,14 +56,3 @@ pub async fn read_server_address(
         .collect())
 }
 
-pub async fn store_settings(settings: Settings, conn: &mut SqliteConnection) -> Result<(), Error> {
-    _ = sqlx::query!(
-        "INSERT INTO settings (id, external_redirector_address) VALUES (1, ?)
-ON CONFLICT(id) DO UPDATE SET external_redirector_address = excluded.external_redirector_address",
-        settings.external_redirector_address
-    )
-    .execute(conn)
-    .await?;
-
-    Ok(())
-}
