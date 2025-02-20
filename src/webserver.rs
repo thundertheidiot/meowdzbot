@@ -117,12 +117,15 @@ async fn server_data(
     Ok(Json(info))
 }
 
+use tower_http::services::ServeDir;
+
 pub async fn server(ctx: Arc<serenity::Context>) -> Result<(), Error> {
     let app = Router::new()
         .route("/", post(gamestate_handler))
         .route("/", get(handle_get))
         .route("/data/{*path}", get(server_data))
         .route("/{*path}", get(steam_connect))
+        .nest_service("/assets", ServeDir::new("static"))
         .with_state(ctx);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));

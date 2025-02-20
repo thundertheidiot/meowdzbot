@@ -48,11 +48,20 @@
            sqlx database create
            sqlx migrate run
         '';
+
+        installPhaseCommand = ''
+          mkdir -p $out/bin
+          cp target/release/${pname} $out/bin/
+          cp -r target/release/static $out/static
+        '';
       };
 
       docker = pkgs.dockerTools.buildLayeredImage {
         name = "registry.gitlab.com/thundertheidiot/meowdzbot";
         tag = "latest";
+
+        contents = "${default}";
+
         config = {
           Env = [
             "DATABASE_URL=sqlite:/meow.db"
@@ -60,7 +69,7 @@
           ExposedPorts = {
             "8080" = {};
           };
-          Cmd = "${default}/bin/meowdz-bot";
+          Cmd = "/bin/meowdz-bot";
         };
       };
     });

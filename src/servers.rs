@@ -125,7 +125,7 @@ pub async fn list_servers(ctx: Context<'_>) -> Result<(), Error> {
     let list = servers
         .iter()
 	.fold(String::new(), |mut output, (name, server)| {
-	    _ = write!(output, "{} - {}\n", name, server.addr);
+	    _ = writeln!(output, "{} - {}", name, server.addr);
 	    output
 	});
 
