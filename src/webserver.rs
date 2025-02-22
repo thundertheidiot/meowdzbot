@@ -125,7 +125,7 @@ pub async fn server(ctx: Arc<serenity::Context>) -> Result<(), Error> {
         .route("/", get(handle_get))
         .route("/data/{*path}", get(server_data))
         .route("/{*path}", get(steam_connect))
-        .nest_service("/assets", ServeDir::new("static"))
+        .nest_service("/static", ServeDir::new("static"))
         .with_state(ctx);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
@@ -134,7 +134,7 @@ pub async fn server(ctx: Arc<serenity::Context>) -> Result<(), Error> {
     println!("Listening on http://0.0.0.0:8080");
 
     if let Err(e) = axum::serve(listener, app).await {
-	eprintln!("Webserver error: {e}");
+        eprintln!("Webserver error: {e}");
     };
 
     Ok(())

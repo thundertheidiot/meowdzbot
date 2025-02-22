@@ -1,14 +1,16 @@
 pub mod activity;
 pub mod updating;
+mod slurs;
 
-use crate::servers::Server;
 use crate::serenity::CreateActionRow;
+use crate::server_info;
 use crate::server_info::get_server_info;
+use crate::servers::Server;
 use crate::servers::Servers;
 use crate::settings::Settings;
 use crate::socket::{ServerSocket, ServerSocketValue};
 use crate::{Context, Error};
-use ::serenity::all::{Colour, CreateEmbed, CreateEmbedFooter};
+use ::serenity::all::{Colour, CreateAttachment, CreateEmbed, CreateEmbedFooter};
 use csgo_server::players::Player;
 use poise::serenity_prelude as serenity;
 use poise::CreateReply;
@@ -19,26 +21,50 @@ use serenity::all::CreateButton;
 pub async fn make_status_message(
     external_redirector: Option<String>,
     socks: &ServerSocketValue,
-    name: &String, // not really required, but servers are stored as a hashmap
+    name: &String, // not really required, but servers are stored as a hashmap so this will always be there anyway
     server: &Server,
-) -> Result<(CreateEmbed, Vec<CreateActionRow>), Error> {
+) -> Result<(CreateEmbed, Vec<CreateActionRow>, Vec<CreateAttachment>), Error> {
     let info = get_server_info(socks, name).await?;
     let s_info = info.server_info;
     let players = info.players.real().0;
 
     let button = match external_redirector {
-        Some(r) => vec![CreateButton::new_link(format!("{}/{}", r, encode(&server.addr)))
-            .label("Connect")
-            .emoji('📡')],
+        Some(r) => vec![
+            CreateButton::new_link(format!("{}/{}", r, encode(&server.addr)))
+                .label("Connect")
+                .emoji('📡'),
+        ],
         _ => vec![],
     };
 
-    let mut embed = CreateEmbed::new()
-        .title(s_info.name)
-        .color(Colour::DARK_PURPLE) // TODO make color reflect player count
-        .description(format!(
-            r#"
+    let mut attachments = vec![
+	CreateAttachment::path("static/respawn.png").await?
+    ];
+
+    let mut embed = CreateEmbed::new();
+
+    if let Some(image) = info.image {
+	attachments.push(
+	    CreateAttachment::path(format!("static/maps/{}", image)).await?
+	);
+
+	embed = embed.image(format!("attachment://{}", image));
+    }
+
+    embed = embed.title(s_info.name);
+
+    let max: usize = server.max_player_count as usize; // should be safe
+    match players.len() {
+        0 => (),
+        n if n < max => embed = embed.color(Colour::DARK_GREEN),
+        n if n == max || n > max => embed = embed.color(Colour::PURPLE),
+        _ => (),
+    }
+
+    embed = embed.description(format!(
+        r#"
 `{} - {}/{} players online`
+Time since map change `{:0>2}:{:0>2}`
 
 ```
 {}
@@ -46,13 +72,23 @@ pub async fn make_status_message(
 Connect manually:
 `{}connect {}`
 "#,
-            s_info.map,
-            players.len(),
-	    server.max_player_count,
-            format_players(players),
-	    if server.allow_upload_required {"sv_allowupload 1; "} else {""},
-	    server.addr
-        ));
+        s_info.map,
+        players.len(),
+        server.max_player_count,
+
+	(info.elapsed.as_secs() / 60) % 60,
+	info.elapsed.as_secs() % 60,
+
+        format_players(players),
+        if server.allow_upload_required {
+            "sv_allowupload 1; "
+        } else {
+            ""
+        },
+        server.addr
+    ));
+
+    embed = embed.thumbnail("attachment://respawn.png");
 
     if !button.is_empty() {
         embed = embed.footer(CreateEmbedFooter::new(
@@ -60,7 +96,7 @@ Connect manually:
         ));
     }
 
-    Ok((embed, vec![CreateActionRow::Buttons(button)]))
+    Ok((embed, vec![CreateActionRow::Buttons(button)], attachments))
 }
 
 #[poise::command(slash_command, required_permissions = "SEND_MESSAGES")]
@@ -81,40 +117,36 @@ pub async fn status(
         .get::<ServerSocket>()
         .ok_or("DataError: Unable to get sockets")?;
 
-    let server = data.get::<Servers>()
-	.ok_or("DataError: Unable to get servers")?
-	.get(&name).ok_or(format!("ServerError: Unable to get server {}", &name))?;
+    let server = data
+        .get::<Servers>()
+        .ok_or("DataError: Unable to get servers")?
+        .get(&name)
+        .ok_or(format!("ServerError: Unable to get server {}", &name))?;
 
-    let (embed, action) = make_status_message(
-        Some(redirect),
-        socks,
-        &name,
-	server,
-    )
-    .await?;
+    let (embed, action, attachments) = make_status_message(Some(redirect), socks, &name, server).await?;
+
+    let mut message = CreateReply::default()
+        .embed(embed)
+        .components(action)
+        .ephemeral(true);
+
+    for a in attachments.into_iter() {
+	message = message.attachment(a);
+    }
 
     ctx.send(
-        CreateReply::default()
-            .embed(embed)
-            .components(action)
-            .ephemeral(true),
+	message
     )
     .await?;
 
     Ok(())
 }
 
+
+use slurs::filter;
 fn format_players(players: Vec<Player>) -> String {
-    // players.sort_by(|a, b| b.score.cmp(&a.score));
-
-    // players
-    //     .into_iter()
-    //     .enumerate()
-    //     .map(|(i, p)| format!("{: >2}. {:^20} --- score: {}\n", i + 1, p.name, p.score))
-    //     .collect::<String>()
-
     players
         .into_iter()
-        .map(|p| p.name + "\n")
+        .map(|p| filter(p.name) + "\n")
         .collect::<String>()
 }

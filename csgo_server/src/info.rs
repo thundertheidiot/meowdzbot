@@ -1,7 +1,7 @@
-use std::{io, str::Utf8Error};
-use serde::Serialize;
-use tokio::net::UdpSocket;
 use crate::parse_to_string;
+use serde::Serialize;
+use std::{io, str::Utf8Error};
+use tokio::net::UdpSocket;
 
 use crate::request::{send_request, Query};
 
@@ -101,7 +101,7 @@ impl TryFrom<Vec<u8>> for ServerInfo {
     fn try_from(data: Vec<u8>) -> Result<Self, Utf8Error> {
         let mut index = 5; // skip over header and header byte
         let protocol = data[index];
-	index += 1;
+        index += 1;
         let name: String;
         (name, index) = parse_to_string(&data, index)?;
         let map: String;
@@ -129,16 +129,16 @@ impl TryFrom<Vec<u8>> for ServerInfo {
         let server_environment: ServerEnvironment = data[index].into();
         index += 1;
 
-	let public = if data[index] == 0 {true} else {false};
-	index += 1;
+        let public = if data[index] == 0 { true } else { false };
+        index += 1;
 
-	let vac = if data[index] == 0 {false} else {true};
-	index += 1;
+        let vac = if data[index] == 0 { false } else { true };
+        index += 1;
 
-	let version: String;
+        let version: String;
         (version, index) = parse_to_string(&data, index)?;
 
-	// TODO: data flag and optional properties
+        // TODO: data flag and optional properties
 
         Ok(ServerInfo {
             protocol,
@@ -152,9 +152,9 @@ impl TryFrom<Vec<u8>> for ServerInfo {
             bots,
             server_type,
             server_environment,
-	    public,
+            public,
             vac,
-	    version,
+            version,
         })
     }
 }
@@ -162,8 +162,7 @@ impl TryFrom<Vec<u8>> for ServerInfo {
 pub async fn get_server_info(sock: &UdpSocket) -> io::Result<ServerInfo> {
     let data = send_request(sock, Query::Info).await?;
 
-    Ok(ServerInfo::try_from(data)
-       .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?)
+    Ok(ServerInfo::try_from(data).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?)
 }
 
 // #[cfg(test)]
@@ -183,7 +182,7 @@ pub async fn get_server_info(sock: &UdpSocket) -> io::Result<ServerInfo> {
 // 	].to_vec();
 
 // 	let result = ServerInfo {
-	    
+
 // 	}
 //     }
 // }

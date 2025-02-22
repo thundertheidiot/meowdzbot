@@ -27,7 +27,7 @@ async fn update_status_message(
 ) -> Result<(), Error> {
     let http = ctx.http();
 
-    let c= ChannelId::new(channel_id);
+    let c = ChannelId::new(channel_id);
     let m = MessageId::new(message_id);
 
     let mut msg = http.get_message(c, m).await?;
@@ -37,27 +37,38 @@ async fn update_status_message(
         .get::<Settings>()
         .and_then(|s| s.external_redirector_address.clone());
 
-    let server = data.get::<Servers>()
-	.ok_or("DataError: Unable to get servers")?
-	.get(&name).ok_or(format!("ServerError: Unable to get server {}", &name))?;
+    let server = data
+        .get::<Servers>()
+        .ok_or("DataError: Unable to get servers")?
+        .get(&name)
+        .ok_or(format!("ServerError: Unable to get server {}", &name))?;
 
-    let socks = data.get::<ServerSocket>().ok_or("DataError: Unable to get sockets")?;
+    let socks = data
+        .get::<ServerSocket>()
+        .ok_or("DataError: Unable to get sockets")?;
 
-    let (embed, action) = make_status_message(redirector, socks, &name, server).await?;
+    let (embed, action, attachments) = make_status_message(redirector, socks, &name, server).await?;
+
+    let mut message = EditMessage::new()
+        .content("")
+        .embed(embed)
+        .components(action);
+
+    for a in attachments.into_iter() {
+	message = message.new_attachment(a);
+    }
 
     msg.edit(
-	http,
-	EditMessage::new()
-	    .content("")
-	    .embed(embed)
-	    .components(action)
-    ).await?;
-    
+        http,
+	message
+    )
+    .await?;
+
     Ok(())
 }
 
 pub async fn status_message_update_loop(ctx: Arc<serenity::Context>) {
-    let mut interval = time::interval(Duration::from_secs(15));
+    let mut interval = time::interval(Duration::from_secs(25));
 
     time::interval(Duration::from_secs(2)).tick().await;
 
@@ -71,10 +82,10 @@ pub async fn status_message_update_loop(ctx: Arc<serenity::Context>) {
                     let ctx = ctx.clone();
 
                     tokio::spawn(async move {
-			match update_status_message(c, m, name, ctx).await {
-			    Ok(_) => (),
-			    Err(e) => eprintln!("{e}"),
-			}
+                        match update_status_message(c, m, name, ctx).await {
+                            Ok(_) => (),
+                            Err(e) => eprintln!("{e}"),
+                        }
                     });
                 }
             }

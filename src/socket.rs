@@ -7,6 +7,7 @@ use tokio::net::{ToSocketAddrs, UdpSocket};
 type Error = crate::Error;
 
 pub struct ServerSocket;
+// The bot had a weird issue, where it would mix up the info and player query data, this seems to fix that
 pub type ServerSocketValue = HashMap<String, (UdpSocket, UdpSocket)>;
 impl TypeMapKey for ServerSocket {
     type Value = ServerSocketValue;

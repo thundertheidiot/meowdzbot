@@ -2,7 +2,10 @@ use serde::Serialize;
 use std::{io, str::Utf8Error};
 use tokio::net::UdpSocket;
 
-use crate::{parse_to_string, request::{send_request, Query}};
+use crate::{
+    parse_to_string,
+    request::{send_request, Query},
+};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Player {
@@ -49,7 +52,7 @@ impl Player {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct Players (pub Vec<Player>);
+pub struct Players(pub Vec<Player>);
 
 impl TryFrom<Vec<u8>> for Players {
     type Error = Utf8Error;
@@ -74,22 +77,22 @@ impl TryFrom<Vec<u8>> for Players {
 
 impl Players {
     pub fn real(self) -> Self {
-	Players(
-	    self.0.into_iter()
-		.filter(|p|
-			p.name != "" && // Spectators
+        Players(
+            self.0
+                .into_iter()
+                .filter(|p| {
+                    p.name != "" && // Spectators
 			p.name != "DatHost - GOTV"
-		)
-		.collect::<Vec<Player>>()
-	)
+                })
+                .collect::<Vec<Player>>(),
+        )
     }
 }
 
 pub async fn get_players(sock: &UdpSocket) -> io::Result<Players> {
     let data = send_request(sock, Query::Player).await?;
 
-    Ok(Players::try_from(data)
-        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?)
+    Ok(Players::try_from(data).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?)
 }
 
 // #[cfg(test)]

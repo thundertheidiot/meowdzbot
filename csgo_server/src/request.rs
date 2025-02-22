@@ -1,8 +1,8 @@
-use tokio::time::Duration;
+use std::io;
 use tokio::net::ToSocketAddrs;
 use tokio::net::UdpSocket;
 use tokio::time;
-use std::io;
+use tokio::time::Duration;
 
 pub async fn create_socket<A: ToSocketAddrs>(address: A) -> io::Result<UdpSocket> {
     let sock = UdpSocket::bind("0.0.0.0:0").await?;
@@ -22,11 +22,10 @@ pub enum Query {
 
 impl Query {
     pub fn get(&self) -> &'static [u8] {
-	match self {
-	    Query::Info => "TSource Engine Query\0".as_bytes(),
-	    Query::Player => &[b'U', 0xFF, 0xFF, 0xFF, 0xFF],
-
-	}
+        match self {
+            Query::Info => "TSource Engine Query\0".as_bytes(),
+            Query::Player => &[b'U', 0xFF, 0xFF, 0xFF, 0xFF],
+        }
     }
 }
 
@@ -46,13 +45,13 @@ pub async fn send_request(sock: &UdpSocket, query: Query) -> io::Result<Vec<u8>>
     let len = time::timeout(timeout, sock.recv(&mut buf)).await?.unwrap();
     // Challenge mechanism
     while buf[4] == 0x41 {
-	if query == Query::Player {
-	    request.truncate(5); // FF FF FF FF 'U'
-	}
-	
-	request.extend_from_slice(&buf[5..len]);
-	_ = time::timeout(timeout, sock.send(&request)).await?;
-	_ = time::timeout(timeout, sock.recv(&mut buf)).await?;
+        if query == Query::Player {
+            request.truncate(5); // FF FF FF FF 'U'
+        }
+
+        request.extend_from_slice(&buf[5..len]);
+        _ = time::timeout(timeout, sock.send(&request)).await?;
+        _ = time::timeout(timeout, sock.recv(&mut buf)).await?;
     }
 
     Ok(buf.to_vec())

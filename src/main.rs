@@ -1,6 +1,6 @@
-use crate::servers::Servers;
 use crate::servers::create_server;
 use crate::servers::delete_server;
+use crate::servers::Servers;
 use crate::socket::ServerSocket;
 use crate::status::activity::bot_status_loop;
 use crate::status::status;
@@ -10,10 +10,10 @@ use once_cell::sync::Lazy;
 use poise::serenity_prelude as serenity;
 use poise::CreateReply;
 use servers::db::read_servers;
+use servers::list_servers;
 use servers::Server;
 use settings::db::read_settings;
 use settings::set_external_redirector;
-use servers::list_servers;
 use socket::update_socket;
 use socket::ServerSocketValue;
 use sqlx::Connection;
@@ -23,10 +23,10 @@ use status::updating::db::read_updating_status_messages;
 use status::updating::delete_updating_status;
 use status::updating::status_message_update_loop;
 use status::updating::UpdatingStatusMessages;
-use tokio::sync::RwLock;
-use tokio::task::JoinHandle;
 use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::sync::RwLock;
+use tokio::task::JoinHandle;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
@@ -35,11 +35,11 @@ use std::env;
 mod db;
 mod gamestate_integration;
 mod server_info;
+mod servers;
 mod settings;
 mod socket;
 mod status;
 mod webserver;
-mod servers;
 
 struct UserData {}
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -65,14 +65,14 @@ pub async fn help(ctx: Context<'_>, command: Option<String>) -> Result<(), Error
 #[poise::command(slash_command, check = "privilege_check")]
 async fn restart(ctx: Context<'_>) -> Result<(), Error> {
     ctx.send(
-	CreateReply::default()
-	    .content("restarting...")
-	    .ephemeral(true)
-    ).await?;
+        CreateReply::default()
+            .content("restarting...")
+            .ephemeral(true),
+    )
+    .await?;
 
-    std::process::exit(0); 
+    std::process::exit(0);
 }
-
 
 static TASKS: Lazy<Arc<RwLock<Vec<JoinHandle<()>>>>> =
     Lazy::new(|| Arc::new(RwLock::new(Vec::new())));
@@ -86,31 +86,31 @@ async fn event_handler(
         serenity::FullEvent::Ready { data_about_bot, .. } => {
             println!("Logged in as {}", data_about_bot.user.name);
 
-	    let tasks = vec![
-		tokio::spawn(bot_status_loop(Arc::new(ctx.clone()))),
-		tokio::spawn(status_message_update_loop(Arc::new(ctx.clone()))),
-	    ];
+            let tasks = vec![
+                tokio::spawn(bot_status_loop(Arc::new(ctx.clone()))),
+                tokio::spawn(status_message_update_loop(Arc::new(ctx.clone()))),
+            ];
 
-	    let mut t = TASKS.write().await;
-	    t.clear();
-	    t.extend(tasks);
+            let mut t = TASKS.write().await;
+            t.clear();
+            t.extend(tasks);
         }
-	serenity::FullEvent::Resume { event, .. } => {
-	    println!("resumed, {event:#?}");
+        serenity::FullEvent::Resume { event, .. } => {
+            println!("resumed, {event:#?}");
 
-	    let mut t = TASKS.write().await;
-	    for task in t.iter() {
-		task.abort();
-	    }
+            let mut t = TASKS.write().await;
+            for task in t.iter() {
+                task.abort();
+            }
 
-	    let tasks = vec![
-		tokio::spawn(bot_status_loop(Arc::new(ctx.clone()))),
-		tokio::spawn(status_message_update_loop(Arc::new(ctx.clone()))),
-	    ];
+            let tasks = vec![
+                tokio::spawn(bot_status_loop(Arc::new(ctx.clone()))),
+                tokio::spawn(status_message_update_loop(Arc::new(ctx.clone()))),
+            ];
 
-	    t.clear();
-	    t.extend(tasks);
-	}
+            t.clear();
+            t.extend(tasks);
+        }
         _ => {}
     }
     Ok(())
@@ -148,7 +148,7 @@ async fn main() -> Result<(), Error> {
             commands: vec![
                 register(),
                 help(),
-		restart(),
+                restart(),
                 status(),
                 create_server(),
                 delete_server(),
@@ -167,8 +167,8 @@ async fn main() -> Result<(), Error> {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
 
-		// Webserver
-		tokio::spawn(server(Arc::new(ctx.clone())));
+                // Webserver
+                tokio::spawn(server(Arc::new(ctx.clone())));
 
                 Ok(UserData {})
             })
@@ -185,10 +185,10 @@ async fn main() -> Result<(), Error> {
 
         sqlx::migrate!().run(&mut conn).await?;
 
-	let mut servers: HashMap<String, Server> = HashMap::new();
-	read_servers(&mut servers, &mut conn).await?;
+        let mut servers: HashMap<String, Server> = HashMap::new();
+        read_servers(&mut servers, &mut conn).await?;
 
-	let mut sockets: ServerSocketValue = HashMap::new();
+        let mut sockets: ServerSocketValue = HashMap::new();
         for (n, a) in &servers {
             match update_socket(&mut sockets, n.clone(), &a.addr).await {
                 Ok(_) => (),
