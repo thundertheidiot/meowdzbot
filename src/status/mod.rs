@@ -39,7 +39,7 @@ pub async fn make_status_message(
 
 
     let mut attachments = vec![
-	CreateAttachment::path("static/respawn.png").await?
+	CreateAttachment::path("static/respawnwcat.png").await?
     ];
 
     let mut embed = CreateEmbed::new();
@@ -102,7 +102,7 @@ Connect manually:
 
     ));
 
-    embed = embed.thumbnail("attachment://respawn.png");
+    embed = embed.thumbnail("attachment://respawnwcat.png");
 
     if !buttons.is_empty() {
         embed = embed.footer(CreateEmbedFooter::new(
