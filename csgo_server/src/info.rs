@@ -78,6 +78,12 @@ impl From<u8> for VAC {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct SourceTV {
+    pub port: i16,
+    pub name: Box<str>,
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct ServerInfo {
     pub protocol: u8,
     pub name: Box<str>,
@@ -92,7 +98,13 @@ pub struct ServerInfo {
     pub server_environment: ServerEnvironment,
     pub public: bool,
     pub vac: bool,
-    pub version: String,
+    pub version: Box<str>,
+    pub edf: u8,
+    pub port: Option<i16>,
+    pub steam_id: Option<u64>,
+    pub source_tv: Option<SourceTV>,
+    pub keywords: Option<Box<str>>,
+    pub game_id: Option<u64>,
 }
 
 impl TryFrom<Vec<u8>> for ServerInfo {
@@ -138,6 +150,80 @@ impl TryFrom<Vec<u8>> for ServerInfo {
         let version: Box<str>;
         (version, index) = parse_to_string(&data, index)?;
 
+	let edf = data[index];
+	index += 1;
+
+	let port = match (edf & 0x80) != 0 {
+	    true => {
+		let val: i16 = i16::from_le_bytes([data[index], data[index + 1]]);
+		index += 2;
+		Some(val)
+	    },
+	    false => None
+	};
+
+	let steam_id = match (edf & 0x10) != 0 {
+	    true => {
+		let val: u64 = u64::from_le_bytes([
+		    data[index],
+		    data[index + 1],
+		    data[index + 2],
+		    data[index + 3],
+		    data[index + 4],
+		    data[index + 5],
+		    data[index + 6],
+		    data[index + 7],
+		]);
+		index += 8;
+		Some(val)
+	    },
+	    false => None
+	};
+
+	let source_tv = match (edf & 0x40) != 0 {
+	    true => {
+		let port: i16 = i16::from_le_bytes([data[index], data[index + 1]]);
+		index += 2;
+
+		let name: Box<str>;
+		(name, index) = parse_to_string(&data, index)?;
+
+		Some(SourceTV {
+		    port,
+		    name
+		})
+	    },
+	    false => None
+	};
+
+	let keywords = match (edf & 0x20) != 0 {
+	    true => {
+		let val: Box<str>;
+		(val, index) = parse_to_string(&data, index)?;
+
+		Some(val)
+	    },
+	    false => None
+	};
+
+	let game_id = match (edf & 0x10) != 0 {
+	    true => {
+		let val: u64 = u64::from_le_bytes([
+		    data[index],
+		    data[index + 1],
+		    data[index + 2],
+		    data[index + 3],
+		    data[index + 4],
+		    data[index + 5],
+		    data[index + 6],
+		    data[index + 7],
+		]);
+		index += 8;
+		Some(val)
+	    },
+	    false => None
+	};
+
         // TODO: data flag and optional properties
 
         Ok(ServerInfo {
@@ -155,6 +241,12 @@ impl TryFrom<Vec<u8>> for ServerInfo {
             public,
             vac,
             version,
+	    edf,
+	    port,
+	    steam_id,
+	    source_tv,
+	    keywords,
+	    game_id,
         })
     }
 }

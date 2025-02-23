@@ -28,14 +28,16 @@ pub async fn make_status_message(
     let s_info = info.server_info;
     let players = info.players.real().0;
 
-    let button = match external_redirector {
-        Some(r) => vec![
+    let mut buttons: Vec<CreateButton> = Vec::new();
+
+    if let Some(r) = external_redirector {
+	buttons.push(
             CreateButton::new_link(format!("{}/{}", r, encode(&server.addr)))
                 .label("Connect")
-                .emoji('📡'),
-        ],
-        _ => vec![],
-    };
+                .emoji('📡')
+	);
+    }
+
 
     let mut attachments = vec![
 	CreateAttachment::path("static/respawn.png").await?
@@ -61,6 +63,11 @@ pub async fn make_status_message(
         _ => (),
     }
 
+    let connect_prefix = match server.allow_upload_required {
+	true => "sv_allowupload 1; ",
+	false => "",
+    };
+
     embed = embed.description(format!(
         r#"
 `{} - {}/{} players online`
@@ -71,6 +78,7 @@ Time since map change `{:0>2}:{:0>2}`
 ```
 Connect manually:
 `{}connect {}`
+{}
 "#,
         s_info.map,
         players.len(),
@@ -80,23 +88,30 @@ Connect manually:
 	info.elapsed.as_secs() % 60,
 
         format_players(players),
-        if server.allow_upload_required {
-            "sv_allowupload 1; "
-        } else {
-            ""
-        },
-        server.addr
+	connect_prefix,
+        server.addr,
+	if let (Some(stv), Some(pos)) = (s_info.source_tv, &server.addr.find(':')) {
+	    format!(
+		"Spectate: `{}connect {}:{}`",
+		connect_prefix,
+		&server.addr[..*pos],
+		stv.port
+	    )
+	} else {
+	    "".into()
+	}
+
     ));
 
     embed = embed.thumbnail("attachment://respawn.png");
 
-    if !button.is_empty() {
+    if !buttons.is_empty() {
         embed = embed.footer(CreateEmbedFooter::new(
             "Open CS:GO before pressing connect!",
         ));
     }
 
-    Ok((embed, vec![CreateActionRow::Buttons(button)], attachments))
+    Ok((embed, vec![CreateActionRow::Buttons(buttons)], attachments))
 }
 
 #[poise::command(slash_command, required_permissions = "SEND_MESSAGES")]
