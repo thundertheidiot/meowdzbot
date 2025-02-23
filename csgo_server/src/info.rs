@@ -80,10 +80,10 @@ impl From<u8> for VAC {
 #[derive(Debug, Clone, Serialize)]
 pub struct ServerInfo {
     pub protocol: u8,
-    pub name: String,
-    pub map: String,
-    pub folder: String,
-    pub game: String,
+    pub name: Box<str>,
+    pub map: Box<str>,
+    pub folder: Box<str>,
+    pub game: Box<str>,
     pub id: i16,
     pub players: u8,
     pub max_players: u8,
@@ -102,13 +102,13 @@ impl TryFrom<Vec<u8>> for ServerInfo {
         let mut index = 5; // skip over header and header byte
         let protocol = data[index];
         index += 1;
-        let name: String;
+        let name: Box<str>;
         (name, index) = parse_to_string(&data, index)?;
-        let map: String;
+        let map: Box<str>;
         (map, index) = parse_to_string(&data, index)?;
-        let folder: String;
+        let folder: Box<str>;
         (folder, index) = parse_to_string(&data, index)?;
-        let game: String;
+        let game: Box<str>;
         (game, index) = parse_to_string(&data, index)?;
 
         let id: i16 = i16::from_le_bytes([data[index], data[index + 1]]);
@@ -135,7 +135,7 @@ impl TryFrom<Vec<u8>> for ServerInfo {
         let vac = if data[index] == 0 { false } else { true };
         index += 1;
 
-        let version: String;
+        let version: Box<str>;
         (version, index) = parse_to_string(&data, index)?;
 
         // TODO: data flag and optional properties

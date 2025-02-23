@@ -10,7 +10,7 @@ use crate::{
 #[derive(Debug, Clone, Serialize)]
 pub struct Player {
     pub index: u8,
-    pub name: String,
+    pub name: Box<str>,
     pub score: i32,
     pub duration: f32,
 }
@@ -20,7 +20,7 @@ impl Player {
         let i = data[index];
         index += 1;
 
-        let name: String;
+        let name: Box<str>;
         (name, index) = parse_to_string(data, index)?;
 
         let score = i32::from_le_bytes([
@@ -81,8 +81,8 @@ impl Players {
             self.0
                 .into_iter()
                 .filter(|p| {
-                    p.name != "" && // Spectators
-			p.name != "DatHost - GOTV"
+                    &*p.name != "" && // Spectators
+			&*p.name != "DatHost - GOTV"
                 })
                 .collect::<Vec<Player>>(),
         )

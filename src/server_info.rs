@@ -109,7 +109,7 @@ async fn map_data_setup(name: &String, server_info: &ServerInfo) {
 
     match data.get_mut(name) {
         Some(v) => {
-            if *v.map != server_info.map {
+            if v.map != server_info.map {
                 v.update(&server_info.map);
             }
         }

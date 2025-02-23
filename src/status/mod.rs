@@ -147,6 +147,7 @@ use slurs::filter;
 fn format_players(players: Vec<Player>) -> String {
     players
         .into_iter()
-        .map(|p| filter(p.name) + "\n")
-        .collect::<String>()
+        .map(|p| filter(p.name))
+        .collect::<Vec<_>>()
+        .join("\n")
 }
