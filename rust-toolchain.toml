@@ -1,4 +1,4 @@
 [toolchain]
-channel = "stable"
+channel = "nightly"
 targets = ["x86_64-unknown-linux-gnu"]
-components = ["rust-analyzer"]
+components = ["rust-src", "rust-analyzer", "rustfmt"]

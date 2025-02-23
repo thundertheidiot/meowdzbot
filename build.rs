@@ -21,5 +21,5 @@ fn main() {
 
     let assets = repo.join("static");
     let res = copy_dir(assets, out_dir.join("static"));
-    println!("cargo:warning=Static status: {:?}", res);
+    println!("cargo:warning=Static status: {res:?}");
 }

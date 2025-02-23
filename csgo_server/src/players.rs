@@ -1,10 +1,15 @@
+use crate::byte;
+use crate::float;
+use crate::long;
 use serde::Serialize;
-use std::{io, str::Utf8Error};
+use std::io;
+use std::io::Bytes;
+use std::io::Read;
 use tokio::net::UdpSocket;
 
 use crate::{
-    parse_to_string,
     request::{send_request, Query},
+    string, Error,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -15,59 +20,40 @@ pub struct Player {
     pub duration: f32,
 }
 
-impl Player {
-    fn make(data: &[u8], mut index: usize) -> Result<(Player, usize), Utf8Error> {
-        let i = data[index];
-        index += 1;
+impl TryFrom<&mut Bytes<&[u8]>> for Player {
+    type Error = Error;
 
-        let name: Box<str>;
-        (name, index) = parse_to_string(data, index)?;
+    fn try_from(data: &mut Bytes<&[u8]>) -> Result<Player, Error> {
+        let index = byte(data)?;
+        let name = string(data)?;
 
-        let score = i32::from_le_bytes([
-            data[index],
-            data[index + 1],
-            data[index + 2],
-            data[index + 3],
-        ]);
-        index += 4;
+        let score = long(data)?;
+        let duration = float(data)?;
 
-        let duration = f32::from_le_bytes([
-            data[index],
-            data[index + 1],
-            data[index + 2],
-            data[index + 3],
-        ]);
-        index += 4;
-
-        Ok((
-            Player {
-                index: i,
-                name,
-                score,
-                duration,
-            },
+        Ok(Player {
             index,
-        ))
+            name,
+            score,
+            duration,
+        })
     }
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct Players(pub Vec<Player>);
 
-impl TryFrom<Vec<u8>> for Players {
-    type Error = Utf8Error;
+impl TryFrom<Bytes<&[u8]>> for Players {
+    type Error = Error;
 
-    fn try_from(data: Vec<u8>) -> Result<Self, Utf8Error> {
-        let mut index = 5; // skip over header and header byte
+    fn try_from(mut data: Bytes<&[u8]>) -> Result<Self, Error> {
+        data.advance_by(5).or(Err("Unable to advance by 5"))?;
 
-        let num_players = data[index];
-        index += 1;
+        let num_players: u8 = data.next().transpose()?.ok_or("Unexpected end of file")?;
 
         let mut players: Vec<Player> = Vec::new();
 
         for _ in 0..num_players {
-            let p: Player;
-            (p, index) = Player::make(&data, index)?;
+            let p = Player::try_from(&mut data)?;
             players.push(p);
         }
 
@@ -80,10 +66,7 @@ impl Players {
         Players(
             self.0
                 .into_iter()
-                .filter(|p| {
-		    !(*p.name).is_empty() &&
-			&*p.name != "DatHost - GOTV"
-                })
+                .filter(|p| !(*p.name).is_empty() && &*p.name != "DatHost - GOTV")
                 .collect::<Vec<Player>>(),
         )
     }
@@ -91,8 +74,9 @@ impl Players {
 
 pub async fn get_players(sock: &UdpSocket) -> io::Result<Players> {
     let data = send_request(sock, Query::Player).await?;
+    let bytes = data.bytes();
 
-    Players::try_from(data).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+    Players::try_from(bytes).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
 }
 
 // #[cfg(test)]

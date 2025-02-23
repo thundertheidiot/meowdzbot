@@ -24,6 +24,22 @@
           ];
         }));
   in {
+    devShells = forAllSystems (pkgs: let
+      toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
+    in {
+      default = pkgs.mkShell {
+        buildInputs = with pkgs; [
+          toolchain
+          sqlx-cli
+        ];
+
+        DATABASE_URL = "sqlite:meow.db";
+        shellHook = ''
+          touch meow.db
+        '';
+      };
+    });
+
     packages = forAllSystems (pkgs: let
       toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
       craneLib = (crane.mkLib pkgs).overrideToolchain toolchain;

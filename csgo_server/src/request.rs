@@ -29,7 +29,7 @@ impl Query {
     }
 }
 
-pub async fn send_request(sock: &UdpSocket, query: Query) -> io::Result<Vec<u8>> {
+pub async fn send_request<'a>(sock: &'a UdpSocket, query: Query) -> io::Result<[u8; 4096]> {
     let mut buf = [0; 4096];
     let timeout = Duration::from_secs(5);
 
@@ -54,5 +54,5 @@ pub async fn send_request(sock: &UdpSocket, query: Query) -> io::Result<Vec<u8>>
         _ = time::timeout(timeout, sock.recv(&mut buf)).await?;
     }
 
-    Ok(buf.to_vec())
+    Ok(buf)
 }

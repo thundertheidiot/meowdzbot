@@ -1,6 +1,13 @@
-use crate::parse_to_string;
+use crate::byte;
+use crate::long_long;
+use crate::short;
+use crate::string;
 use serde::Serialize;
-use std::{io, str::Utf8Error};
+use std::io::{Bytes, ErrorKind};
+use std::{
+    io::{self, Read},
+    str::Utf8Error,
+};
 use tokio::net::UdpSocket;
 
 use crate::request::{send_request, Query};
@@ -107,125 +114,70 @@ pub struct ServerInfo {
     pub game_id: Option<u64>,
 }
 
-impl TryFrom<Vec<u8>> for ServerInfo {
-    type Error = Utf8Error;
+use crate::Error;
 
-    fn try_from(data: Vec<u8>) -> Result<Self, Utf8Error> {
-        let mut index = 5; // skip over header and header byte
-        let protocol = data[index];
-        index += 1;
-        let name: Box<str>;
-        (name, index) = parse_to_string(&data, index)?;
-        let map: Box<str>;
-        (map, index) = parse_to_string(&data, index)?;
-        let folder: Box<str>;
-        (folder, index) = parse_to_string(&data, index)?;
-        let game: Box<str>;
-        (game, index) = parse_to_string(&data, index)?;
+impl TryFrom<Bytes<&[u8]>> for ServerInfo {
+    type Error = Error;
 
-        let id: i16 = i16::from_le_bytes([data[index], data[index + 1]]);
-        index += 2;
+    fn try_from(mut data: Bytes<&[u8]>) -> Result<Self, Error> {
+        data.advance_by(5).or(Err("Unable to advance by 5"))?;
 
-        let players: u8 = data[index];
-        index += 1;
+        let protocol: u8 = byte(&mut data)?;
 
-        let max_players: u8 = data[index];
-        index += 1;
+        let name = string(&mut data)?;
+        let map = string(&mut data)?;
+        let folder = string(&mut data)?;
+        let game = string(&mut data)?;
 
-        let bots: u8 = data[index];
-        index += 1;
+        let id: i16 = short(&mut data)?;
 
-        let server_type: ServerType = data[index].into();
-        index += 1;
+        let players: u8 = byte(&mut data)?;
+        let max_players: u8 = byte(&mut data)?;
+        let bots: u8 = byte(&mut data)?;
 
-        let server_environment: ServerEnvironment = data[index].into();
-        index += 1;
+        let server_type: ServerType = byte(&mut data)?.into();
 
-        let public = data[index] == 0;
-        index += 1;
+        let server_environment: ServerEnvironment = byte(&mut data)?.into();
 
-        let vac = data[index] != 0;
-        index += 1;
+        let public: bool = byte(&mut data)? == 0;
+        let vac: bool = byte(&mut data)? == 1;
 
-        let version: Box<str>;
-        (version, index) = parse_to_string(&data, index)?;
+        let version = string(&mut data)?;
 
-	let edf = data[index];
-	index += 1;
+        let edf: u8 = byte(&mut data)?;
 
-	let port = match (edf & 0x80) != 0 {
-	    true => {
-		let val: i16 = i16::from_le_bytes([data[index], data[index + 1]]);
-		index += 2;
-		Some(val)
-	    },
-	    false => None
-	};
+        let port: Option<i16> = if (edf & 0x80) != 0 {
+            Some(short(&mut data)?)
+        } else {
+            None
+        };
 
-	let steam_id = match (edf & 0x10) != 0 {
-	    true => {
-		let val: u64 = u64::from_le_bytes([
-		    data[index],
-		    data[index + 1],
-		    data[index + 2],
-		    data[index + 3],
-		    data[index + 4],
-		    data[index + 5],
-		    data[index + 6],
-		    data[index + 7],
-		]);
-		index += 8;
-		Some(val)
-	    },
-	    false => None
-	};
+        let steam_id: Option<u64> = if (edf & 0x10) != 0 {
+            Some(long_long(&mut data)?)
+        } else {
+            None
+        };
 
-	let source_tv = match (edf & 0x40) != 0 {
-	    true => {
-		let port: i16 = i16::from_le_bytes([data[index], data[index + 1]]);
-		index += 2;
+        let source_tv: Option<SourceTV> = if (edf & 0x40) != 0 {
+            let port = short(&mut data)?;
+            let name = string(&mut data)?;
 
-		let name: Box<str>;
-		(name, index) = parse_to_string(&data, index)?;
+            Some(SourceTV { port, name })
+        } else {
+            None
+        };
 
-		Some(SourceTV {
-		    port,
-		    name
-		})
-	    },
-	    false => None
-	};
+        let keywords: Option<Box<str>> = if (edf & 0x20) != 0 {
+            Some(string(&mut data)?)
+        } else {
+            None
+        };
 
-	let keywords = match (edf & 0x20) != 0 {
-	    true => {
-		let val: Box<str>;
-		(val, index) = parse_to_string(&data, index)?;
-
-		Some(val)
-	    },
-	    false => None
-	};
-
-	let game_id = match (edf & 0x10) != 0 {
-	    true => {
-		let val: u64 = u64::from_le_bytes([
-		    data[index],
-		    data[index + 1],
-		    data[index + 2],
-		    data[index + 3],
-		    data[index + 4],
-		    data[index + 5],
-		    data[index + 6],
-		    data[index + 7],
-		]);
-		// end of the query
-		// index += 8;
-		Some(val)
-	    },
-	    false => None
-	};
-
-        // TODO: data flag and optional properties
+        let game_id: Option<u64> = if (edf & 0x10) != 0 {
+            Some(long_long(&mut data)?)
+        } else {
+            None
+        };
 
         Ok(ServerInfo {
             protocol,
@@ -242,20 +194,21 @@ impl TryFrom<Vec<u8>> for ServerInfo {
             public,
             vac,
             version,
-	    edf,
-	    port,
-	    steam_id,
-	    source_tv,
-	    keywords,
-	    game_id,
+            edf,
+            port,
+            steam_id,
+            source_tv,
+            keywords,
+            game_id,
         })
     }
 }
 
 pub async fn get_server_info(sock: &UdpSocket) -> io::Result<ServerInfo> {
     let data = send_request(sock, Query::Info).await?;
+    let bytes = data.bytes();
 
-    ServerInfo::try_from(data).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+    ServerInfo::try_from(bytes).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
 }
 
 // #[cfg(test)]
