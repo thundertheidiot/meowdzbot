@@ -136,7 +136,7 @@ pub async fn get_server_info(socks: &ServerSocketValue, name: &String) -> Result
                     let server_info = info::get_server_info(&socks.0).await?;
                     let players = players::get_players(&socks.1).await?;
 
-		    map_data_setup(&name, &server_info).await;
+		    map_data_setup(name, &server_info).await;
                     // if this doesn't unwrap i will explode
 		    let mapdata = MAP_DATA.read().await;
 		    let mapdata = mapdata.get(name).unwrap();
@@ -165,7 +165,7 @@ pub async fn get_server_info(socks: &ServerSocketValue, name: &String) -> Result
             let server_info = info::get_server_info(&socks.0).await?;
             let players = players::get_players(&socks.1).await?;
 
-	    map_data_setup(&name, &server_info).await;
+	    map_data_setup(name, &server_info).await;
             // if this doesn't unwrap i will explode
 	    let mapdata = MAP_DATA.read().await;
             let mapdata = mapdata.get(name).unwrap();

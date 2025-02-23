@@ -3,7 +3,6 @@ pub mod updating;
 mod slurs;
 
 use crate::serenity::CreateActionRow;
-use crate::server_info;
 use crate::server_info::get_server_info;
 use crate::servers::Server;
 use crate::servers::Servers;
@@ -59,7 +58,7 @@ pub async fn make_status_message(
     match players.len() {
         0 => (),
         n if n < max => embed = embed.color(Colour::DARK_GREEN),
-        n if n == max || n > max => embed = embed.color(Colour::PURPLE),
+        n if n >= max => embed = embed.color(Colour::PURPLE),
         _ => (),
     }
 
@@ -162,7 +161,7 @@ use slurs::filter;
 fn format_players(players: Vec<Player>) -> String {
     players
         .into_iter()
-        .map(|p| filter(p.name))
+        .map(|p| filter(&p.name))
         .collect::<Vec<_>>()
         .join("\n")
 }
