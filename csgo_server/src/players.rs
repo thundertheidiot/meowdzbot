@@ -81,7 +81,7 @@ impl Players {
             self.0
                 .into_iter()
                 .filter(|p| {
-                    &*p.name != "" && // Spectators
+		    !(*p.name).is_empty() &&
 			&*p.name != "DatHost - GOTV"
                 })
                 .collect::<Vec<Player>>(),
@@ -92,7 +92,7 @@ impl Players {
 pub async fn get_players(sock: &UdpSocket) -> io::Result<Players> {
     let data = send_request(sock, Query::Player).await?;
 
-    Ok(Players::try_from(data).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?)
+    Players::try_from(data).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
 }
 
 // #[cfg(test)]

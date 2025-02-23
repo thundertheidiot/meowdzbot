@@ -141,10 +141,10 @@ impl TryFrom<Vec<u8>> for ServerInfo {
         let server_environment: ServerEnvironment = data[index].into();
         index += 1;
 
-        let public = if data[index] == 0 { true } else { false };
+        let public = data[index] == 0;
         index += 1;
 
-        let vac = if data[index] == 0 { false } else { true };
+        let vac = data[index] != 0;
         index += 1;
 
         let version: Box<str>;
@@ -218,7 +218,8 @@ impl TryFrom<Vec<u8>> for ServerInfo {
 		    data[index + 6],
 		    data[index + 7],
 		]);
-		index += 8;
+		// end of the query
+		// index += 8;
 		Some(val)
 	    },
 	    false => None
@@ -254,7 +255,7 @@ impl TryFrom<Vec<u8>> for ServerInfo {
 pub async fn get_server_info(sock: &UdpSocket) -> io::Result<ServerInfo> {
     let data = send_request(sock, Query::Info).await?;
 
-    Ok(ServerInfo::try_from(data).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?)
+    ServerInfo::try_from(data).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
 }
 
 // #[cfg(test)]
