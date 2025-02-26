@@ -62,6 +62,7 @@ impl TryFrom<Bytes<&[u8]>> for Players {
 }
 
 impl Players {
+    #[must_use]
     pub fn real(self) -> Self {
         Players(
             self.0
