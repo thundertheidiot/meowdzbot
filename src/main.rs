@@ -7,6 +7,7 @@ use crate::status::status;
 use crate::webserver::server;
 use db::DbConnection;
 use once_cell::sync::Lazy;
+use poise::samples::on_error;
 use poise::serenity_prelude as serenity;
 use poise::CreateReply;
 use servers::db::read_servers;
@@ -24,6 +25,8 @@ use status::updating::delete_updating_status;
 use status::updating::status_message_update_loop;
 use status::updating::UpdatingStatusMessages;
 use std::collections::HashMap;
+use std::fmt::Debug;
+use std::fmt::Display;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tokio::task::JoinHandle;
@@ -72,6 +75,23 @@ async fn restart(ctx: Context<'_>) -> Result<(), Error> {
     .await?;
 
     std::process::exit(0);
+}
+
+async fn error_handler<U, E: Display + Debug>(error: poise::FrameworkError<'_, U, E>) {
+    if let poise::FrameworkError::Command { error, ctx, .. } = error {
+        if let Err(e) = ctx
+            .send(
+                CreateReply::default()
+                    .content(format!("{error}"))
+                    .ephemeral(true),
+            )
+            .await
+        {
+            eprintln!("unable to send error message: {e}");
+        }
+    } else {
+        _ = on_error(error).await;
+    }
 }
 
 static TASKS: Lazy<Arc<RwLock<Vec<JoinHandle<()>>>>> =
@@ -145,6 +165,7 @@ async fn main() -> Result<(), Error> {
             event_handler: |ctx, event, framework, data| {
                 Box::pin(event_handler(ctx, event, framework, data))
             },
+            on_error: |err| Box::pin(error_handler(err)),
             commands: vec![
                 register(),
                 help(),
