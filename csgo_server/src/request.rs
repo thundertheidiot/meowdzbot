@@ -23,7 +23,7 @@ impl Query {
 
 pub(crate) async fn send_request(sock: &UdpSocket, query: Query) -> io::Result<[u8; 4096]> {
     let mut buf = [0; 4096];
-    let timeout = Duration::from_secs(5);
+    let timeout = Duration::from_secs(10);
 
     let mut request: Vec<u8> = Vec::with_capacity(30);
 

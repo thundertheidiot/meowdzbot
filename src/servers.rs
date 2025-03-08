@@ -179,7 +179,6 @@ SET addr = excluded.addr,
 	    server.max_player_count,
 	    server.legacy,
 	    server.allow_upload_required
-	    
 	)
 	    .execute(conn)
 	    .await?;

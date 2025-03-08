@@ -87,7 +87,7 @@ async fn steam_connect(Path(path): Path<String>) -> impl IntoResponse {
 }
 
 async fn handle_get() -> impl IntoResponse {
-    let html_content = "hi";
+    let html_content = "<p>meow :3</p>";
 
     Html(html_content)
 }

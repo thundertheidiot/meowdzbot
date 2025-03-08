@@ -47,22 +47,19 @@ async fn update_status_message(
         .get::<ServerSocket>()
         .ok_or("DataError: Unable to get sockets")?;
 
-    let (embed, action, attachments) = make_status_message(redirector, socks, &name, server).await?;
+    let (embed, action, attachments) =
+        make_status_message(redirector, socks, &name, server).await?;
 
     let mut message = EditMessage::new()
         .content("")
-        .embed(embed)
-        .components(action);
+        .components(action)
+        .embed(embed);
 
     for a in attachments.into_iter() {
-	message = message.new_attachment(a);
+        message = message.new_attachment(a);
     }
 
-    msg.edit(
-        http,
-	message
-    )
-    .await?;
+    msg.edit(http, message).await?;
 
     Ok(())
 }
