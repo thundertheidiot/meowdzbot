@@ -82,11 +82,46 @@ async fn gamestate_handler(
 }
 
 async fn steam_connect(Path(path): Path<String>) -> impl IntoResponse {
-    let html_content = format!(
-        r#"<!DOCTYPE html><html><head><script>window.open("steam://connect/{}", "_self");</script></head></html>"#,
-        decode(&path).unwrap_or("INVALID".into())
-    );
-    Html(html_content)
+    Html(maud::html! {
+	head {
+	    style {(PreEscaped(STYLE_SHEET))}
+
+	    script {
+		(PreEscaped(format!(r#"window.open("steam://connect/{}", "_self");"#,
+				    decode(&path).unwrap_or("INVALID".into())
+		)))
+	    }
+	}
+
+	body {
+	    video class=(ClassName::VID) autoplay loop muted playsinline {
+		source src = "/static/dangerzone.mp4" type="video/mp4" {}
+	    }
+
+	    br style=(PreEscaped("padding-top: 20px;")) {}
+
+	    div {
+		p style="font-size: 150%;" {
+		    "Connecting you to: "
+			code { (PreEscaped(format!("{path}"))) }
+		}
+
+		p {
+		    b { "Open CS:GO before connecting!" }
+		    " Otherwise Steam will automatically open CS2."
+		}
+
+		p {
+		    "Click \"Open Link\"/\"Open Steam\" on the popup to connect, to skip this in the future, check the always allow box."
+			" If nothing opened, you may have to disable popup blocking."
+		}
+
+		br {}
+		p style="font-size: smaller;" { "This tab can be closed after the steam window has appeared." }
+	    }
+	    
+	}
+    }.into_string())
 }
 
 use maud::PreEscaped;

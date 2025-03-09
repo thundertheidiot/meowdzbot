@@ -20,6 +20,16 @@ div {
 	width: 50%;
 	margin: auto;
 	background-color: #aaaaaa90;
-	padding: 10%;
+	padding-left: 10%;
+	padding-right: 10%;
+	padding-bottom: 5px;
+	padding-top: 5px;
 	border-radius: 20px;
+	text-align: center;
+}
+
+code {
+	background-color: #aaaaaab0;
+	border-radius: 20px;
+	padding: 2px;
 }
