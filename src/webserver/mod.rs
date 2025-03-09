@@ -85,6 +85,7 @@ async fn steam_connect(Path(path): Path<String>) -> impl IntoResponse {
     Html(maud::html! {
 	head {
 	    style {(PreEscaped(STYLE_SHEET))}
+	    link rel="icon" type="image/png" href="/static/favicon.png" {}
 
 	    script {
 		(PreEscaped(format!(r#"window.open("steam://connect/{}", "_self");"#,
@@ -131,6 +132,7 @@ async fn handle_get() -> impl IntoResponse {
 	maud::html! {
 	    head {
 		style {(PreEscaped(STYLE_SHEET))}
+		link rel="icon" type="image/png" href="/static/favicon.png" {}
 	    }
 
 	    body {
