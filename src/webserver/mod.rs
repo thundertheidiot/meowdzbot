@@ -127,7 +127,7 @@ async fn steam_connect(Path(path): Path<String>) -> impl IntoResponse {
 
 use maud::PreEscaped;
 
-async fn handle_get() -> impl IntoResponse {
+async fn main_page() -> impl IntoResponse {
     Html(
 	maud::html! {
 	    head {
@@ -144,7 +144,17 @@ async fn handle_get() -> impl IntoResponse {
 
 		div {
 		    p {
-			"meow :3"
+			"MeowBot"
+		    }
+
+		    div id="meow" {
+			p {"waiting for data"}
+		    }
+
+		    br {}
+
+		    div id="meow2" {
+			p {"waiting for data"}
 		    }
 		}
 		
@@ -183,7 +193,7 @@ use tower_http::services::ServeDir;
 pub async fn server(ctx: Arc<serenity::Context>) -> Result<(), Error> {
     let app = Router::new()
         .route("/", post(gamestate_handler))
-        .route("/", get(handle_get))
+        .route("/", get(main_page))
         .route("/data/{*path}", get(server_data))
         .route("/{*path}", get(steam_connect))
         .nest_service("/static", ServeDir::new("static"))

@@ -10,9 +10,12 @@ use std::time::Duration;
 use std::sync::Arc;
 use poise::serenity_prelude as serenity;
 
-const THUNDER: u64 = 349607458324348930;
-const CHID: u64 = 1336443721058615318;
+// TODO unhardcode these
+const CHID: u64 = 1224415507495649330;
 const COP_CAT: u64 = 1223090099164549200;
+// TODO store channel id + role/user id per game server
+
+// TODO think about this more
 
 pub async fn down_detector(ctx: &serenity::Context) -> Result<(), Error> {
 
