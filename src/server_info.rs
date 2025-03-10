@@ -37,7 +37,7 @@ pub enum Info {
     ServerDown(ServerDown),
 }
 
-static INFO: Lazy<Arc<RwLock<HashMap<String, Info>>>> =
+pub static INFO: Lazy<Arc<RwLock<HashMap<String, Info>>>> =
     Lazy::new(|| Arc::new(RwLock::new(HashMap::new())));
 
 pub struct MapData {
@@ -128,7 +128,7 @@ async fn sinfo(
     let server_info = info::get_server_info(&socks.0).await?;
     let players = players::get_players(&socks.1).await?;
 
-    // if name == "meow" {
+
     // 	return Err("ligma balls".into());
     // }
 

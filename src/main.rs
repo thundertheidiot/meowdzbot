@@ -6,6 +6,7 @@ use crate::status::activity::bot_status_loop;
 use crate::status::status;
 use crate::webserver::server;
 use db::DbConnection;
+use down_detector::down_detector_loop;
 use once_cell::sync::Lazy;
 use poise::samples::on_error;
 use poise::serenity_prelude as serenity;
@@ -36,6 +37,7 @@ use tracing_subscriber::FmtSubscriber;
 use std::env;
 
 mod db;
+mod down_detector;
 mod gamestate_integration;
 mod server_info;
 mod servers;
@@ -110,6 +112,7 @@ async fn event_handler(
             let tasks = vec![
                 tokio::spawn(bot_status_loop(Arc::new(ctx.clone()))),
                 tokio::spawn(status_message_update_loop(Arc::new(ctx.clone()))),
+                tokio::spawn(down_detector_loop(Arc::new(ctx.clone()))),
             ];
 
             let mut t = TASKS.write().await;
@@ -127,6 +130,7 @@ async fn event_handler(
             let tasks = vec![
                 tokio::spawn(bot_status_loop(Arc::new(ctx.clone()))),
                 tokio::spawn(status_message_update_loop(Arc::new(ctx.clone()))),
+                tokio::spawn(down_detector_loop(Arc::new(ctx.clone()))),
             ];
 
             t.clear();
