@@ -30,7 +30,7 @@ pub async fn down_detector(ctx: &serenity::Context) -> Result<(), Error> {
 	    if SystemTime::now().duration_since(down.since)?.as_secs() > 60 && !down.ping_sent {
 		let channel = serenity::ChannelId::from(CHID);
 		channel.send_message(&ctx, CreateMessage::new().content(
-		    format!("<@&{}> Server `{name}` has been down since <t:{}:R>",
+		    format!("<@&{}> Server `{name}` went down <t:{}:R>!",
 			    COP_CAT,
 			    down.since.duration_since(UNIX_EPOCH)?.as_secs()
 		    )

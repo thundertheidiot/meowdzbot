@@ -53,13 +53,11 @@ async fn bot_status(data: RwLockReadGuard<'_, TypeMap>) -> Result<String, Error>
 }
 
 fn map_str(map: &str) -> String {
-    let mut map = map;
-
     if map.chars().nth(2) == Some('_') {
-        map = &map[3..];
+        map[3..4].to_uppercase() + &map[4..]
+    } else {
+	String::from(map)
     }
-
-    String::from(map)
 }
 
 pub async fn bot_status_loop(ctx: Arc<serenity::Context>) {
