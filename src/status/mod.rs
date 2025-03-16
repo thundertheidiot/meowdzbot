@@ -179,9 +179,10 @@ pub async fn status(
     Ok(())
 }
 
+// TODO per server warmup time
+const WARMUP: f32 = 100.0;
 fn playing_game(player: &Player, duration: &Duration) -> bool {
-    // warmup heuristic?
-    player.duration > (duration.as_secs_f32() - 90.0) || player.score > 0
+    player.duration > (duration.as_secs_f32() - WARMUP) || player.score > 0
 }
 
 use slurs::filter;
