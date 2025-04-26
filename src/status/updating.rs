@@ -1,4 +1,5 @@
 use crate::servers::Servers;
+use crate::privilege_check;
 use db::remove_updating_status_message;
 use std::sync::Arc;
 use std::time::Duration;
@@ -101,6 +102,7 @@ This requires admin privileges."
     slash_command,
     required_permissions = "MANAGE_MESSAGES",
     required_bot_permissions = "MANAGE_MESSAGES",
+    check = "privilege_check",
     category = "Updating status message",
     help_text_fn = "create_usm_help"
 )]
@@ -148,6 +150,7 @@ This requires admin privileges."
     context_menu_command = "Delete USM (admin only)",
     required_permissions = "MANAGE_MESSAGES",
     required_bot_permissions = "MANAGE_MESSAGES",
+    check = "privilege_check",
     category = "Updating status message",
     help_text_fn = "delete_usm_help"
 )]
