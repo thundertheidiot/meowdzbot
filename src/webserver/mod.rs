@@ -127,12 +127,16 @@ async fn steam_connect(Path(path): Path<String>) -> impl IntoResponse {
 
 use maud::PreEscaped;
 
+const JAVASCRIPT: &'static str = include_str!("main.js");
+
 async fn main_page() -> impl IntoResponse {
     Html(
 	maud::html! {
 	    head {
 		style {(PreEscaped(STYLE_SHEET))}
 		link rel="icon" type="image/png" href="/static/favicon.png" {}
+
+		script { (PreEscaped(JAVASCRIPT)) }
 	    }
 
 	    body {
@@ -143,10 +147,6 @@ async fn main_page() -> impl IntoResponse {
 		br style=(PreEscaped("padding-top: 20px;")) {}
 
 		div {
-		    p {
-			"MeowBot"
-		    }
-
 		    div id="meow" {
 			p {"waiting for data"}
 		    }
@@ -155,6 +155,12 @@ async fn main_page() -> impl IntoResponse {
 
 		    div id="meow2" {
 			p {"waiting for data"}
+		    }
+
+		    br {}
+
+		    p {
+			"Join the " a href="https://discord.gg/hC82X4E2kF" { "Meow DZ Discord" } "for more information"
 		    }
 		}
 		
