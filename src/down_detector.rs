@@ -25,9 +25,10 @@ pub async fn down_detector(ctx: &serenity::Context) -> Result<(), Error> {
         .get::<ServerSocket>()
         .ok_or("DataError: Unable to get sockets")?;
 
+    // TODO unhardcode this shit
     for name in ["meow".to_string(), "meow2".to_string()] {
 	if let Info::ServerDown(down) = get_server_info(socks, &name).await? {
-	    if SystemTime::now().duration_since(down.since)?.as_secs() > 60 && !down.ping_sent {
+	    if SystemTime::now().duration_since(down.since)?.as_secs() > 120 && !down.ping_sent {
 		let channel = serenity::ChannelId::from(CHID);
 		channel.send_message(&ctx, CreateMessage::new().content(
 		    format!("<@&{}> Server `{name}` went down <t:{}:R>!",
