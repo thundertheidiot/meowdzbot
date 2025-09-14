@@ -153,9 +153,9 @@ async fn main_page() -> impl IntoResponse {
 
 		    br {}
 
-		    div id="meow2" {
-			p {"waiting for data"}
-		    }
+		    // div id="meow2" {
+		    // 	p {"waiting for data"}
+		    // }
 
 		    br {}
 

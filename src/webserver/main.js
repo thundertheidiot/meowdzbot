@@ -57,7 +57,7 @@ function fetchServerData(server) {
 }
 
 fetchServerData("meow");
-fetchServerData("meow2");
+// fetchServerData("meow2");
 
 const meowTimer = setInterval(fetchServerData, 3000, "meow");
-const meow2Timer = setInterval(fetchServerData, 3000, "meow2");
+// const meow2Timer = setInterval(fetchServerData, 3000, "meow2");
