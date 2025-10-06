@@ -37,10 +37,11 @@ async fn bot_status(data: RwLockReadGuard<'_, TypeMap>) -> Result<String, Error>
 
     match info {
         Info::ServerUp(info) => Ok(format!(
-            "{} - {}/{} - {:0>2}:{:0>2}",
+            "{} - {} - {:0>2}:{:0>2}",
+            // "{} - {}/{} - {:0>2}:{:0>2}",
             map_str(&info.server_info.map),
             info.players.real().0.len(),
-            server.max_player_count,
+            // server.max_player_count,
             (info.elapsed.as_secs() / 60) % 60,
             info.elapsed.as_secs() % 60,
         )),

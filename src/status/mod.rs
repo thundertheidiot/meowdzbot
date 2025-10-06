@@ -56,13 +56,13 @@ pub async fn make_status_message(
 
             embed = embed.title(s_info.name);
 
-            let max: usize = server.max_player_count as usize; // should be safe
-            match players.len() {
-                0 => (),
-                n if n < max => embed = embed.color(Colour::DARK_GREEN),
-                n if n >= max => embed = embed.color(Colour::PURPLE),
-                _ => (),
-            }
+            // let max: usize = server.max_player_count as usize; // should be safe
+            // match players.len() {
+            //     0 => (),
+            //     n if n < max => embed = embed.color(Colour::DARK_GREEN),
+            //     n if n >= max => embed = embed.color(Colour::PURPLE),
+            //     _ => (),
+            // }
 
             let connect_prefix = match server.allow_upload_required {
                 true => "sv_allowupload 1; ",
@@ -71,7 +71,7 @@ pub async fn make_status_message(
 
             embed = embed.description(format!(
                 r#"
-`{} - {}/{} players online`
+`{} - {} players online`
 Time since map change `{:0>2}:{:0>2}`
 
 Players
@@ -84,7 +84,7 @@ Connect
 "#,
                 s_info.map,
                 players.len(),
-                server.max_player_count,
+                // max,
                 (info.elapsed.as_secs() / 60) % 60,
                 info.elapsed.as_secs() % 60,
                 // discord breaks formatting of codeblocks if it's empty

@@ -215,18 +215,15 @@ async fn main() -> Result<(), Error> {
         read_servers(&mut servers, &mut conn).await?;
 
         let mut sockets: ServerSocketValue = HashMap::new();
-        // for (n, a) in &servers {
-        //     match update_socket(&mut sockets, n.clone(), &a.addr).await {
-        //         Ok(_) => (),
-        //         Err(e) => eprintln!("Unable to create socket: {e:#?}."),
-        //     };
-        // }
+
 	for (n, a) in &servers {
 	    update_socket(&mut sockets, n.clone(), &a.addr).await?;
 	}
 
         read_settings(&mut data, &mut conn).await?;
-        data.insert::<UpdatingStatusMessages>(read_updating_status_messages(&mut conn).await?);
+        data.insert::<UpdatingStatusMessages>(
+	    read_updating_status_messages(&mut conn).await?
+	);
         data.insert::<ServerSocket>(sockets);
         data.insert::<Servers>(servers);
         data.insert::<DbConnection>(conn);
