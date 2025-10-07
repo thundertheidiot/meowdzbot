@@ -65,8 +65,8 @@ pub async fn make_status_message(
             // }
 
 	    match players.len() {
-                n if n > 5 && n < 17 => embed = embed.color(Colour::DARK_GREEN),
-                n if n >= 17 => embed = embed.color(Colour::PURPLE),
+                n if n > 5 && n <= 17 => embed = embed.color(Colour::DARK_GREEN),
+                n if n > 17 => embed = embed.color(Colour::PURPLE),
                 _ => (),
             }
 
