@@ -64,6 +64,12 @@ pub async fn make_status_message(
             //     _ => (),
             // }
 
+	    match players.len() {
+                n if n > 5 && n < 17 => embed = embed.color(Colour::DARK_GREEN),
+                n if n >= 17 => embed = embed.color(Colour::PURPLE),
+                _ => (),
+            }
+
             let connect_prefix = match server.allow_upload_required {
                 true => "sv_allowupload 1; ",
                 false => "",
