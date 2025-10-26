@@ -87,7 +87,7 @@ Players
 Connect
 ```{}connect {}```
 {}
-If there are 18 or more players, you **must** connect through the console.
+If there are 16 or more players, you **must** connect through the console.
 "#,
                 s_info.map,
                 players.len(),
