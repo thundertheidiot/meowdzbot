@@ -1,0 +1,19 @@
+jobs:
+  update:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        name: Repository dispatch
+        run: |-
+          gh workflow run build-package.yaml \
+            --repo thundertheidiot/nixdots \
+            --ref main \
+            -f package=nixosConfigurations.vps.pkgs.meowdzbot \
+            -f flake-input=meowdzbot \
+            -f vps-deploy=true
+name: Update meowdzbot in nixdots
+"on":
+  push: {}
