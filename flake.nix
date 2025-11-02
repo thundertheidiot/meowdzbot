@@ -1,7 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    rust-overlay.url = "github:oxalica/rust-overlay/591c5ae84f066bdfc9797b217df392d58eafd088";
+    rust-overlay.url = "github:oxalica/rust-overlay";
     crane.url = "github:ipetkov/crane";
   };
 
