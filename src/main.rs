@@ -38,7 +38,6 @@ use std::env;
 
 mod db;
 mod down_detector;
-mod gamestate_integration;
 mod server_info;
 mod servers;
 mod settings;
