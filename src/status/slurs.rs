@@ -1,15 +1,45 @@
-const REPLACEMENT: &str = "meow";
-// didn't think i'd have to filter names
+use regex::Regex;
+
+const REPLACEMENT: &str = "🐈 censored 🐈";
 
 pub fn filter(name: &str) -> String {
-    name.replace("nigga", REPLACEMENT)
-        .replace("NIGGA", REPLACEMENT)
-        .replace("nigger", REPLACEMENT)
-        .replace("NIGGER", REPLACEMENT)
-        .replace("tranny", REPLACEMENT)
-        .replace("TRANNY", REPLACEMENT)
-        .replace("faggot", REPLACEMENT)
-        .replace("FAGGOT", REPLACEMENT)
-        .replace("fag", REPLACEMENT)
-        .replace("FAG", REPLACEMENT)
+    let mut new_name = String::from(name);
+    let regex =
+        Regex::new(r"(?i)(nigger|nigga|faggot|fag|retard|tranny|troon|\+\d{7,15})").unwrap();
+
+    while let Some(m) = regex.find(&new_name) {
+        let start = m.start();
+        let end = m.end();
+
+        new_name = String::from(&new_name[..start]) + REPLACEMENT + &new_name[end..];
+    }
+
+    new_name
+}
+
+mod tests {
+    use std::iter::zip;
+
+    use super::*;
+
+    #[test]
+    fn slurs() {
+        let test = [
+            "hi nigga",
+            "nigger",
+            "CS2 TSHIRT, orders +51997696358",
+            "fuck you retard",
+        ];
+
+        let expected = [
+            "hi 🐈 censored 🐈",
+            "🐈 censored 🐈",
+            "CS2 TSHIRT, orders 🐈 censored 🐈",
+            "fuck you 🐈 censored 🐈",
+        ];
+
+        for (t, e) in zip(test, expected) {
+            assert!(filter(t) == e);
+        }
+    }
 }
