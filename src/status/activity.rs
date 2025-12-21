@@ -1,8 +1,8 @@
+use crate::Error;
+use crate::ServerSocket;
 use crate::server_info::Info;
 use crate::servers::Servers;
 use crate::settings::Settings;
-use crate::Error;
-use crate::ServerSocket;
 
 use crate::server_info::get_server_info;
 use ::serenity::prelude::TypeMap;
@@ -36,27 +36,20 @@ async fn bot_status(data: RwLockReadGuard<'_, TypeMap>) -> Result<String, Error>
         .ok_or(format!("ServerError: Unable to get server {}", ident))?;
 
     match info {
-	Info::ServerUp(info) => {
-	    let len = info.players.real().0.len();
-	    Ok(match len {
-		0 => format!(
-		    "{} - nobody home :(",
-		    map_str(&info.server_info.map)
-		),
-		len => format!(
-		    "{} - {} online - {:0>2}:{:0>2}",
-		    map_str(&info.server_info.map),
-		    len,
-		    (info.elapsed.as_secs() / 60) % 60,
-		    info.elapsed.as_secs() % 60,
-		),
-	    })
-	}
-        Info::ServerDown(_down) => {
-	    Ok(format!(
-		"Server down temporarily",
-	    ))
-	}
+        Info::ServerUp(info) => {
+            let len = info.players.real().0.len();
+            Ok(match len {
+                0 => format!("{} - nobody home :(", map_str(&info.server_info.map)),
+                len => format!(
+                    "{} - {} online - {:0>2}:{:0>2}",
+                    map_str(&info.server_info.map),
+                    len,
+                    (info.elapsed.as_secs() / 60) % 60,
+                    info.elapsed.as_secs() % 60,
+                ),
+            })
+        }
+        Info::ServerDown(_down) => Ok(format!("Server down temporarily",)),
     }
 }
 
@@ -64,7 +57,10 @@ fn map_str(map: &str) -> String {
     if map.chars().nth(2) == Some('_') {
         map[3..4].to_uppercase() + &map[4..]
     } else {
-	String::from(map)
+        match map {
+            "Insertion2_a3_c_fix" => "Insertion2".into(),
+            _ => String::from(map),
+        }
     }
 }
 
