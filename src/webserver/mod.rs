@@ -194,12 +194,22 @@ async fn server_data(
     Ok(Json(info))
 }
 
+async fn alive_check(
+    State(ctx): State<Arc<serenity::Context>>
+) -> StatusCode {
+    match ctx.http.get_current_user().await {
+	Ok(_) => StatusCode::OK,
+	Err(_) => StatusCode::SERVICE_UNAVAILABLE
+    }
+}
+
 use tower_http::services::ServeDir;
 
 pub async fn server(ctx: Arc<serenity::Context>) -> Result<(), Error> {
     let app = Router::new()
         .route("/", post(gamestate_handler))
         .route("/", get(main_page))
+        .route("/health", get(alive_check))
         .route("/data/{*path}", get(server_data))
         .route("/{*path}", get(steam_connect))
         .nest_service("/static", ServeDir::new("static"))
